@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"os"
 	"github.com/veandco/go-sdl2/ttf"
-	"time"
 )
 
 func main() {
@@ -29,12 +28,10 @@ func main() {
 
 	defer r.Destroy()
 
-	g := &game{leftX:50}
-
-
 	running := true
+	g := newGame()
+	g.start(r)
 
-	lastUpdate = time.Now()
 	for running == true {
 		for event := sdl.PollEvent(); event != nil; event = sdl.PollEvent() {
 			switch  e := event.(type) {
@@ -50,17 +47,12 @@ func main() {
 				case sdl.K_d:
 					fmt.Printf("The d button was pressed\n")
 				}
-			default:
-				diff := time.Since(lastUpdate)
-				if diff > 30 * time.Millisecond {
-					fmt.Printf("Diff is %v\n", diff)
-					lastUpdate = time.Now()
-					g.tick()
-					g.render(r)
-				}
 			}
 		}
 	}
+
+
+
 	fmt.Printf("done main thread\n")
 	return
 }
