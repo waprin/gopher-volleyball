@@ -42,18 +42,13 @@ func main() {
 			case *sdl.KeyboardEvent:
 				switch e.Keysym.Sym {
 				case sdl.K_a:
-					fmt.Printf("the A button was pressed \n")
-					g.handleLeftTouch()
+					g.handleLeftTouch(e.State)
 				case sdl.K_d:
-					fmt.Printf("The d button was pressed\n")
+					g.handleRightTouch(e.State)
 				}
 			}
 		}
 	}
-
-
-
-	fmt.Printf("done main thread\n")
 	return
 }
 
