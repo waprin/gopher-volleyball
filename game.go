@@ -5,7 +5,6 @@ import (
 	"time"
 	"github.com/veandco/go-sdl2/gfx"
 	"math"
-	"fmt"
 )
 
 var count = 0
@@ -62,6 +61,8 @@ func (g *game) tick() {
 	count++
 	g.ball.velocityY += gravity
 	g.ball.y += g.ball.velocityY
+	g.ball.x += g.ball.velocityX
+
 
 	g.slime.x += g.slime.velocityX
 
@@ -81,31 +82,38 @@ func (s *slime) touch(b *ball) {
 	dy := ballY - slimeY
 	dist := math.Sqrt(float64(dx * dx + dy * dy))
 
-	if count % 10 == 0 {
-		//fmt.Printf("b.x is %v s.x is %v dx is %v\n", b.x, s.x, dx)
-	}
-	if dy > 0 && dist < float64(b.radius + s.radius) && dist > float64(FUDGE) {
-		fmt.Printf("Collision!\n")
+	ballVelocityY := -1 * b.velocityY
+	slimeVelocityY := -1 * s.velocityY
 
-		fmt.Printf("oldBallX %v\n", b.x)
-		fmt.Printf("oldBallY %v\n", ballY)
+	dVelocityX := b.velocityX  - s.velocityX
+	dVelocityY := ballVelocityY - slimeVelocityY
+
+
+	if dy > 0 && dist < float64(b.radius + s.radius) && dist > float64(FUDGE) {
+//		fmt.Printf("oldBallX %v\n", b.x)
+//		fmt.Printf("oldBallY %v\n", ballY)
 
 
 		b.x = s.x + (s.radius + b.radius) / 2 * (dx / dist)
 		ballY = slimeY + s.radius + b.radius * (dy/dist)
 
-		fmt.Printf("newBallX %v\n", b.x)
-		fmt.Printf("newBallY %v\n", ballY)
+//		fmt.Printf("newBallX %v\n", b.x)
+//		fmt.Printf("newBallY %v\n", ballY)
 
 		if b.velocityY > 0 {
 			b.velocityY *= -1
 		}
-		//smth := dx *
+
 		b.y = HEIGHT - ballY
+
+		smth := (dx * dVelocityX + dy * dVelocityY) / dist
+		if smth <= 0 {
+			b.velocityX = s.velocityX -2 * dx * smth / dist
+			ballVelocityY = s.velocityY - 2 * dy * smth / dist
+
+		}
+		b.velocityY = -1 * ballVelocityY
 	}
-
-	//s.y = HEIGHT - slimeY
-
 }
 
 func (s *slime) render(r *sdl.Renderer) {
