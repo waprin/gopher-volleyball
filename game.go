@@ -11,7 +11,7 @@ import (
 var count = 0
 
 const (
-	gravity = 0.05
+	gravity = 0.01
 )
 
 type game struct {
@@ -20,17 +20,19 @@ type game struct {
 }
 
 type slime struct {
-	x float32
-	y float32
-	radius float32
-	direction int32
+	x float64
+	y float64
+	radius float64
+	velocityX float64
+	velocityY float64
 }
 
 type ball struct {
-	x float32
-	y float32
-	speed float32
-	radius float32
+	x float64
+	y float64
+	velocityX float64
+	velocityY float64
+	radius float64
 }
 
 func newGame () *game {
@@ -42,53 +44,67 @@ func newGame () *game {
 
 func (g *game) handleLeftTouch(state uint8) {
 	if state == 1 {
-		g.slime.direction = 2
+		g.slime.velocityX = -5
 	} else {
-		g.slime.direction = 0
+		g.slime.velocityX = 0
 	}
 }
 
 func (g *game) handleRightTouch(state uint8) {
 	if state == 1 {
-		g.slime.direction = 1
+		g.slime.velocityX = 5
 	} else {
-		g.slime.direction = 0
+		g.slime.velocityX = 0
 	}
 }
 
 func (g *game) tick() {
 	count++
-	g.ball.speed += gravity
-	g.ball.y += g.ball.speed
+	g.ball.velocityY += gravity
+	g.ball.y += g.ball.velocityY
 
-	if g.slime.direction == 1 {
-		g.slime.x += 3
-	} else if g.slime.direction == 2 {
-		g.slime.x -= 3
-	}
+	g.slime.x += g.slime.velocityX
 
 	g.slime.touch(g.ball)
 
 	if int32(g.ball.y + g.ball.radius) >= 600 {
-		g.ball.speed *= -1
+		g.ball.velocityY *= -1
 	}
 }
 
 func (s *slime) touch(b *ball) {
+	HEIGHT := float64(600)
+	ballY := HEIGHT - b.y
+	slimeY := HEIGHT - s.y
 	FUDGE := 0
 	dx := 2 * (b.x - s.x)
-	dy := b.y - s.y
+	dy := ballY - slimeY
 	dist := math.Sqrt(float64(dx * dx + dy * dy))
 
 	if count % 10 == 0 {
 		//fmt.Printf("b.x is %v s.x is %v dx is %v\n", b.x, s.x, dx)
 	}
-	if dy < 0 && dist < float64(b.radius + s.radius) && dist > float64(FUDGE) {
-		fmt.Printf("Collission!")
-		if b.speed > 0 {
-			b.speed *= -1
+	if dy > 0 && dist < float64(b.radius + s.radius) && dist > float64(FUDGE) {
+		fmt.Printf("Collision!\n")
+
+		fmt.Printf("oldBallX %v\n", b.x)
+		fmt.Printf("oldBallY %v\n", ballY)
+
+
+		b.x = s.x + (s.radius + b.radius) / 2 * (dx / dist)
+		ballY = slimeY + s.radius + b.radius * (dy/dist)
+
+		fmt.Printf("newBallX %v\n", b.x)
+		fmt.Printf("newBallY %v\n", ballY)
+
+		if b.velocityY > 0 {
+			b.velocityY *= -1
 		}
+		//smth := dx *
+		b.y = HEIGHT - ballY
 	}
+
+	//s.y = HEIGHT - slimeY
 
 }
 
