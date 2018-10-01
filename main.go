@@ -29,7 +29,7 @@ func main() {
 	defer r.Destroy()
 
 	running := true
-	g := newGame()
+	g := newGame(800, 600)
 	g.start(r)
 
 	for running == true {
