@@ -5,12 +5,13 @@ import (
 	"time"
 	"github.com/veandco/go-sdl2/gfx"
 	"math"
+	"fmt"
 )
 
 var count = 0
 
 const (
-	gravity = 0.1
+	gravity = 0.01
 )
 
 type game struct {
@@ -45,10 +46,10 @@ type net struct {
 }
 
 func newGame (w, h int32) *game {
-	var netHeight int32 = 50
-	var netWidth int32 = 100
+	var netHeight int32 = 200
+	var netWidth int32 = 80
 	return &game{
-		ball: &ball{x:350, y: 200, radius: 20},
+		ball: &ball{x:470, y: 200, radius: 20},
 		slime: &slime{x:50, y: 600, radius: 50},
 		width: w,
 		height: h,
@@ -83,18 +84,44 @@ func (g *game) tick() {
 	g.slime.x += g.slime.velocityX
 	if g.slime.x < g.slime.radius {
 		g.slime.x = g.slime.radius
+	} else if (g.slime.x + g.slime.radius) >= float64(g.net.x) {
+		g.slime.x = float64(g.net.x) - g.slime.radius
 	}
 
 	g.slime.touch(g.ball)
 
-	g.checkWalls()
+	g.checkWallsBall()
+	g.checkNetBall()
 
 	if int32(g.ball.y + g.ball.radius) >= 600 {
 		g.ball.velocityY *= -1
 	}
 }
 
-func (g *game) checkWalls() {
+func (g *game) checkNetBall() {
+	ballY := int32(g.ball.y) + int32(g.ball.radius)
+	ballX := int32(g.ball.x)
+	topOfNet := g.net.y
+
+	if (ballY) > topOfNet {
+		fmt.Printf("under the top of net\n")
+		if ballX >= g.net.x && ballX < g.net.x + g.net.w {
+			fmt.Printf("within bound of net %v\n", g.ball.velocityY)
+			if g.ball.velocityY > 0 && ballY < (topOfNet + 10){
+				fmt.Printf("colliding with top of net\n")
+				g.ball.velocityY *= -1
+				g.ball.y = float64(g.net.y) - g.ball.radius
+			}
+
+
+
+		}
+	} /*else if ballX  {
+		g.ball.velocityX *- -1
+	}*/
+}
+
+func (g *game) checkWallsBall() {
 	if g.ball.x <= 0{
 		g.ball.x = 0
 		g.ball.velocityX *= -1
