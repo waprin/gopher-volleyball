@@ -5,7 +5,6 @@ import (
 	"time"
 	"github.com/veandco/go-sdl2/gfx"
 	"math"
-	"fmt"
 )
 
 var count = 0
@@ -17,6 +16,7 @@ const (
 type game struct {
 	ball *ball
 	slime *slime
+	net *net
 	width int32
 	height int32
 }
@@ -37,13 +37,22 @@ type ball struct {
 	radius float64
 }
 
+type net struct {
+	x int32
+	y int32
+	h int32
+	w int32
+}
+
 func newGame (w, h int32) *game {
+	var netHeight int32 = 50
+	var netWidth int32 = 100
 	return &game{
 		ball: &ball{x:350, y: 200, radius: 20},
 		slime: &slime{x:50, y: 600, radius: 50},
 		width: w,
 		height: h,
-
+		net: &net{x: w/2 - netWidth/2, y: h-netHeight, w: netWidth, h: netHeight},
 	}
 }
 
@@ -66,11 +75,15 @@ func (g *game) handleRightTouch(state uint8) {
 func (g *game) tick() {
 	count++
 	g.ball.velocityY += gravity
+
+
 	g.ball.y += g.ball.velocityY
 	g.ball.x += g.ball.velocityX
 
-
 	g.slime.x += g.slime.velocityX
+	if g.slime.x < g.slime.radius {
+		g.slime.x = g.slime.radius
+	}
 
 	g.slime.touch(g.ball)
 
@@ -151,9 +164,6 @@ func (s *slime) touch(b *ball) {
 					ballVelocityY = -1 * MAX_VELOCITY_Y
 				}
 			}
-			fmt.Printf("b.velocityX is now %v\n", b.velocityX)
-			fmt.Printf("b.velocityY is now %v\n", ballVelocityY)
-
 			b.velocityY = -1 * ballVelocityY
 		}
 
@@ -164,9 +174,18 @@ func (s *slime) render(r *sdl.Renderer) {
 	gfx.ArcColor(r, int32(s.x), int32(s.y), int32(s.radius), 180, 360, sdl.Color{255, 0, 0, 255})
 }
 
+func (n *net) render(r *sdl.Renderer) {
+	rect := &sdl.Rect{int32(n.x), n.y, n.w, n.h}
+	r.SetDrawColor(255, 255, 255, 255)
+	r.DrawRect(rect)
+}
+
 func (g *game) render(r *sdl.Renderer) {
 	r.SetDrawColor(0, 0, 0, 255)
 	r.Clear()
+
+	g.net.render(r)
+
 	g.slime.render(r)
 	g.ball.render(r)
 

@@ -7,6 +7,11 @@ import (
 	"github.com/veandco/go-sdl2/ttf"
 )
 
+const (
+	Width=1000
+	Height=600
+)
+
 func main() {
 	err := sdl.Init(sdl.INIT_EVERYTHING)
 	if err != nil {
@@ -19,7 +24,7 @@ func main() {
 	if err := ttf.Init(); err != nil {
 		fmt.Printf("Could not initialize ttf: %v", err)
 	}
-	window, r, err := sdl.CreateWindowAndRenderer(800, 600, sdl.WINDOW_SHOWN)
+	window, r, err := sdl.CreateWindowAndRenderer(Width, Height, sdl.WINDOW_SHOWN)
 
 	if err != nil {
 		panic(err)
@@ -29,7 +34,7 @@ func main() {
 	defer r.Destroy()
 
 	running := true
-	g := newGame(800, 600)
+	g := newGame(Width, Height)
 	g.start(r)
 
 	for running == true {
