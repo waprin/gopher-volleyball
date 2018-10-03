@@ -5,7 +5,6 @@ import (
 	"time"
 	"github.com/veandco/go-sdl2/gfx"
 	"math"
-	"fmt"
 )
 
 var count = 0
@@ -16,7 +15,8 @@ const (
 
 type game struct {
 	ball *ball
-	slime *slime
+	slime1 *slime
+	slime2 *slime
 	net *net
 	width int32
 	height int32
@@ -28,6 +28,7 @@ type slime struct {
 	radius float64
 	velocityX float64
 	velocityY float64
+	color sdl.Color
 }
 
 type ball struct {
@@ -46,11 +47,12 @@ type net struct {
 }
 
 func newGame (w, h int32) *game {
-	var netHeight int32 = 200
-	var netWidth int32 = 80
+	var netHeight int32 = 70
+	var netWidth int32 = 40
 	return &game{
-		ball: &ball{x:470, y: 200, radius: 20},
-		slime: &slime{x:50, y: 600, radius: 50},
+		ball: &ball{x:200, y: 500, radius: 20, velocityX: 5},
+		slime1: &slime{x:300, y: 600, radius: 50, color: sdl.Color{255, 0, 0,255}},
+		slime2: &slime{x:850, y: 600, radius: 50, color: sdl.Color{0, 255, 0, 255}},
 		width: w,
 		height: h,
 		net: &net{x: w/2 - netWidth/2, y: h-netHeight, w: netWidth, h: netHeight},
@@ -59,17 +61,17 @@ func newGame (w, h int32) *game {
 
 func (g *game) handleLeftTouch(state uint8) {
 	if state == 1 {
-		g.slime.velocityX = -5
+		g.slime1.velocityX = -5
 	} else {
-		g.slime.velocityX = 0
+		g.slime1.velocityX = 0
 	}
 }
 
 func (g *game) handleRightTouch(state uint8) {
 	if state == 1 {
-		g.slime.velocityX = 5
+		g.slime1.velocityX = 5
 	} else {
-		g.slime.velocityX = 0
+		g.slime1.velocityX = 0
 	}
 }
 
@@ -81,14 +83,17 @@ func (g *game) tick() {
 	g.ball.y += g.ball.velocityY
 	g.ball.x += g.ball.velocityX
 
-	g.slime.x += g.slime.velocityX
-	if g.slime.x < g.slime.radius {
-		g.slime.x = g.slime.radius
-	} else if (g.slime.x + g.slime.radius) >= float64(g.net.x) {
-		g.slime.x = float64(g.net.x) - g.slime.radius
+	g.slime1.x += g.slime1.velocityX
+
+	// Slime1 collide with walls
+	if g.slime1.x + g.slime1.radius < 0 {
+		g.slime1.x = g.slime1.radius
+	} else if (g.slime1.x + g.slime1.radius) >= float64(g.net.x) {
+		g.slime1.x = float64(g.net.x) - g.slime1.radius
 	}
 
-	g.slime.touch(g.ball)
+	g.slime1.touch(g.ball)
+	g.slime2.touch(g.ball)
 
 	g.checkWallsBall()
 	g.checkNetBall()
@@ -103,22 +108,24 @@ func (g *game) checkNetBall() {
 	ballX := int32(g.ball.x)
 	topOfNet := g.net.y
 
-	if (ballY) > topOfNet {
-		fmt.Printf("under the top of net\n")
+	if ballY > topOfNet {
 		if ballX >= g.net.x && ballX < g.net.x + g.net.w {
-			fmt.Printf("within bound of net %v\n", g.ball.velocityY)
 			if g.ball.velocityY > 0 && ballY < (topOfNet + 10){
-				fmt.Printf("colliding with top of net\n")
 				g.ball.velocityY *= -1
 				g.ball.y = float64(g.net.y) - g.ball.radius
+			} else if ballX < g.net.x + g.net.w/2  {
+				g.ball.x = float64(g.net.x)
+				if g.ball.velocityX >= 0 {
+					g.ball.velocityX *= -1
+				}
+			} else {
+				g.ball.x = float64(g.net.x)
+				if g.ball.velocityX < 0 {
+					g.ball.velocityX *= -1
+				}
 			}
-
-
-
 		}
-	} /*else if ballX  {
-		g.ball.velocityX *- -1
-	}*/
+	}
 }
 
 func (g *game) checkWallsBall() {
@@ -198,7 +205,7 @@ func (s *slime) touch(b *ball) {
 }
 
 func (s *slime) render(r *sdl.Renderer) {
-	gfx.ArcColor(r, int32(s.x), int32(s.y), int32(s.radius), 180, 360, sdl.Color{255, 0, 0, 255})
+	gfx.ArcColor(r, int32(s.x), int32(s.y), int32(s.radius), 180, 360, s.color)
 }
 
 func (n *net) render(r *sdl.Renderer) {
@@ -213,7 +220,8 @@ func (g *game) render(r *sdl.Renderer) {
 
 	g.net.render(r)
 
-	g.slime.render(r)
+	g.slime1.render(r)
+	g.slime2.render(r)
 	g.ball.render(r)
 
 	r.Present()
