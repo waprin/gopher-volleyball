@@ -47,9 +47,13 @@ func main() {
 			case *sdl.KeyboardEvent:
 				switch e.Keysym.Sym {
 				case sdl.K_a:
-					g.handleLeftTouch(e.State)
+					g.handlePlayer1LeftTouch(e.State)
 				case sdl.K_d:
-					g.handleRightTouch(e.State)
+					g.handlePlayer1RightTouch(e.State)
+				case sdl.K_LEFT:
+					g.handlePlayer2LeftTouch(e.State)
+				case sdl.K_RIGHT:
+					g.handlePlayer2RightTouch(e.State)
 				}
 			}
 		}

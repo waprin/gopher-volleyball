@@ -5,7 +5,6 @@ import (
 	"time"
 	"github.com/veandco/go-sdl2/gfx"
 	"math"
-	"fmt"
 )
 
 var count = 0
@@ -48,8 +47,8 @@ type net struct {
 }
 
 func newGame (w, h int32) *game {
-	var netHeight int32 = 120
-	var netWidth int32 = 40
+	var netHeight int32 = 70
+	var netWidth int32 = 20
 	return &game{
 		ball: &ball{x:200, y: 500, radius: 20, velocityX: 5},
 		slime1: &slime{x:300, y: 600, radius: 50, color: sdl.Color{255, 0, 0,255}},
@@ -60,7 +59,7 @@ func newGame (w, h int32) *game {
 	}
 }
 
-func (g *game) handleLeftTouch(state uint8) {
+func (g *game) handlePlayer1LeftTouch(state uint8) {
 	if state == 1 {
 		g.slime1.velocityX = -5
 	} else {
@@ -68,11 +67,27 @@ func (g *game) handleLeftTouch(state uint8) {
 	}
 }
 
-func (g *game) handleRightTouch(state uint8) {
+func (g *game) handlePlayer1RightTouch(state uint8) {
 	if state == 1 {
 		g.slime1.velocityX = 5
 	} else {
 		g.slime1.velocityX = 0
+	}
+}
+
+func (g *game) handlePlayer2LeftTouch(state uint8) {
+	if state == 1 {
+		g.slime2.velocityX = -5
+	} else {
+		g.slime2.velocityX = 0
+	}
+}
+
+func (g *game) handlePlayer2RightTouch(state uint8) {
+	if state == 1 {
+		g.slime2.velocityX = 5
+	} else {
+		g.slime2.velocityX = 0
 	}
 }
 
@@ -85,6 +100,7 @@ func (g *game) tick() {
 	g.ball.x += g.ball.velocityX
 
 	g.slime1.x += g.slime1.velocityX
+	g.slime2.x += g.slime2.velocityX
 
 	// Slime1 collide with walls
 	if g.slime1.x + g.slime1.radius < 0 {
@@ -111,19 +127,15 @@ func (g *game) checkNetBall() {
 
 	if ballY > topOfNet {
 		if ballX+int32(g.ball.radius) >= g.net.x && ballX - int32(g.ball.radius) < g.net.x + g.net.w {
-			fmt.Printf("net colission\n")
 			if g.ball.velocityY > 0 && ballY < (topOfNet + 10){
-				fmt.Printf("top of net\n")
 				g.ball.velocityY *= -1
 				g.ball.y = float64(g.net.y) - g.ball.radius
 			} else if ballX + int32(g.ball.radius) < g.net.x + g.net.w/2  {
-				fmt.Printf("left side\n")
 				g.ball.x = float64(g.net.x) - g.ball.radius
 				if g.ball.velocityX >= 0 {
 					g.ball.velocityX *= -1
 				}
 			} else {
-				fmt.Printf("right side\n")
 				g.ball.x = float64(g.net.x + g.net.w) + g.ball.radius
 				if g.ball.velocityX < 0 {
 					g.ball.velocityX *= -1
