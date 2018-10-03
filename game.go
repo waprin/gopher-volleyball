@@ -103,10 +103,18 @@ func (g *game) tick() {
 	g.slime2.x += g.slime2.velocityX
 
 	// Slime1 collide with walls
-	if g.slime1.x + g.slime1.radius < 0 {
+	if g.slime1.x - g.slime1.radius < 0 {
 		g.slime1.x = g.slime1.radius
 	} else if (g.slime1.x + g.slime1.radius) >= float64(g.net.x) {
 		g.slime1.x = float64(g.net.x) - g.slime1.radius
+	}
+
+	// Slime 2 collide with wal
+	// ls
+	if g.slime2.x + g.slime2.radius >= float64(g.width) {
+		g.slime2.x = float64(g.width) - g.slime2.radius
+	} else if (g.slime2.x - g.slime2.radius) <= float64(g.net.x + g.net.w) {
+		g.slime2.x = float64(g.net.x + g.net.w) + g.slime2.radius
 	}
 
 	g.slime1.touch(g.ball)
