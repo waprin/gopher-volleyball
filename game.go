@@ -5,6 +5,7 @@ import (
 	"time"
 	"github.com/veandco/go-sdl2/gfx"
 	"math"
+	"fmt"
 )
 
 var count = 0
@@ -47,7 +48,7 @@ type net struct {
 }
 
 func newGame (w, h int32) *game {
-	var netHeight int32 = 70
+	var netHeight int32 = 120
 	var netWidth int32 = 40
 	return &game{
 		ball: &ball{x:200, y: 500, radius: 20, velocityX: 5},
@@ -109,17 +110,21 @@ func (g *game) checkNetBall() {
 	topOfNet := g.net.y
 
 	if ballY > topOfNet {
-		if ballX >= g.net.x && ballX < g.net.x + g.net.w {
+		if ballX+int32(g.ball.radius) >= g.net.x && ballX - int32(g.ball.radius) < g.net.x + g.net.w {
+			fmt.Printf("net colission\n")
 			if g.ball.velocityY > 0 && ballY < (topOfNet + 10){
+				fmt.Printf("top of net\n")
 				g.ball.velocityY *= -1
 				g.ball.y = float64(g.net.y) - g.ball.radius
-			} else if ballX < g.net.x + g.net.w/2  {
-				g.ball.x = float64(g.net.x)
+			} else if ballX + int32(g.ball.radius) < g.net.x + g.net.w/2  {
+				fmt.Printf("left side\n")
+				g.ball.x = float64(g.net.x) - g.ball.radius
 				if g.ball.velocityX >= 0 {
 					g.ball.velocityX *= -1
 				}
 			} else {
-				g.ball.x = float64(g.net.x)
+				fmt.Printf("right side\n")
+				g.ball.x = float64(g.net.x + g.net.w) + g.ball.radius
 				if g.ball.velocityX < 0 {
 					g.ball.velocityX *= -1
 				}
