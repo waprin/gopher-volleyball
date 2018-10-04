@@ -8,8 +8,8 @@ import (
 )
 
 const (
-	Width=1000
-	Height=600
+	Width=750
+	Height=400
 )
 
 func main() {
@@ -50,10 +50,15 @@ func main() {
 					g.handlePlayer1LeftTouch(e.State)
 				case sdl.K_d:
 					g.handlePlayer1RightTouch(e.State)
+				case sdl.K_w:
+					g.handlePlayer1UpTouch(e.State)
 				case sdl.K_LEFT:
 					g.handlePlayer2LeftTouch(e.State)
 				case sdl.K_RIGHT:
 					g.handlePlayer2RightTouch(e.State)
+				case sdl.K_UP:
+					fmt.Printf("Up was touched")
+					g.handlePlayer2UpTouch(e.State)
 				}
 			}
 		}

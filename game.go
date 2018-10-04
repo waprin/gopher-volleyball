@@ -10,7 +10,7 @@ import (
 var count = 0
 
 const (
-	gravity = 0.01
+	gravity = 0.1
 )
 
 type game struct {
@@ -20,6 +20,8 @@ type game struct {
 	net *net
 	width int32
 	height int32
+
+	slime1Pts, slime2Pts int
 }
 
 type slime struct {
@@ -47,21 +49,23 @@ type net struct {
 }
 
 func newGame (w, h int32) *game {
-	var netHeight int32 = 70
-	var netWidth int32 = 20
+	var netHeight int32 = 40
+	var netWidth int32 = 10
 	return &game{
-		ball: &ball{x:200, y: 500, radius: 20, velocityX: 5},
-		slime1: &slime{x:300, y: 600, radius: 50, color: sdl.Color{255, 0, 0,255}},
-		slime2: &slime{x:850, y: 600, radius: 50, color: sdl.Color{0, 255, 0, 255}},
+		ball: &ball{x:200, y: 300, radius: 10},
+		slime1: &slime{x:200, y: 600, radius: 50, color: sdl.Color{255, 0, 0,255}},
+		slime2: &slime{x:700, y: 600, radius: 50, color: sdl.Color{0, 255, 0, 255}},
 		width: w,
 		height: h,
 		net: &net{x: w/2 - netWidth/2, y: h-netHeight, w: netWidth, h: netHeight},
+		slime1Pts: 3,
+		slime2Pts: 2,
 	}
 }
 
 func (g *game) handlePlayer1LeftTouch(state uint8) {
 	if state == 1 {
-		g.slime1.velocityX = -5
+		g.slime1.velocityX = -6
 	} else {
 		g.slime1.velocityX = 0
 	}
@@ -69,15 +73,21 @@ func (g *game) handlePlayer1LeftTouch(state uint8) {
 
 func (g *game) handlePlayer1RightTouch(state uint8) {
 	if state == 1 {
-		g.slime1.velocityX = 5
+		g.slime1.velocityX = 6
 	} else {
 		g.slime1.velocityX = 0
 	}
 }
 
+func (g *game) handlePlayer1UpTouch(state uint8) {
+	if state == 1 {
+		g.slime1.velocityY = -3
+	}
+}
+
 func (g *game) handlePlayer2LeftTouch(state uint8) {
 	if state == 1 {
-		g.slime2.velocityX = -5
+		g.slime2.velocityX = -6
 	} else {
 		g.slime2.velocityX = 0
 	}
@@ -85,9 +95,15 @@ func (g *game) handlePlayer2LeftTouch(state uint8) {
 
 func (g *game) handlePlayer2RightTouch(state uint8) {
 	if state == 1 {
-		g.slime2.velocityX = 5
+		g.slime2.velocityX = 6
 	} else {
 		g.slime2.velocityX = 0
+	}
+}
+
+func (g *game) handlePlayer2UpTouch(state uint8) {
+	if state == 1 {
+		g.slime2.velocityY = -3
 	}
 }
 
@@ -95,12 +111,26 @@ func (g *game) tick() {
 	count++
 	g.ball.velocityY += gravity
 
+	g.slime1.velocityY += gravity
+	g.slime2.velocityY += gravity
 
 	g.ball.y += g.ball.velocityY
 	g.ball.x += g.ball.velocityX
 
 	g.slime1.x += g.slime1.velocityX
+	g.slime1.y += g.slime1.velocityY
+	if g.slime1.y >= float64(g.height) {
+		g.slime1.velocityY = 0
+		g.slime1.y = float64(g.height)
+	}
+
+
 	g.slime2.x += g.slime2.velocityX
+	g.slime2.y += g.slime2.velocityY
+	if g.slime2.y >= float64(g.height) {
+		g.slime2.velocityY = 0
+		g.slime2.y = float64(g.height)
+	}
 
 	// Slime1 collide with walls
 	if g.slime1.x - g.slime1.radius < 0 {
@@ -109,8 +139,7 @@ func (g *game) tick() {
 		g.slime1.x = float64(g.net.x) - g.slime1.radius
 	}
 
-	// Slime 2 collide with wal
-	// ls
+	// Slime 2 collide with walls
 	if g.slime2.x + g.slime2.radius >= float64(g.width) {
 		g.slime2.x = float64(g.width) - g.slime2.radius
 	} else if (g.slime2.x - g.slime2.radius) <= float64(g.net.x + g.net.w) {
@@ -168,10 +197,6 @@ func (g *game) checkWallsBall() {
 	}
 }
 
-func (b *ball) touchWalls() {
-
-}
-
 func (s *slime) touch(b *ball) {
 	HEIGHT := float64(600)
 	ballY := HEIGHT - b.y
@@ -188,8 +213,8 @@ func (s *slime) touch(b *ball) {
 	dVelocityY := ballVelocityY - slimeVelocityY
 
 
-	MAX_VELOCITY_Y:=float64(8)
-	MAX_VELOCITY_X:=float64(10)
+	MAX_VELOCITY_Y:=float64(6)
+	MAX_VELOCITY_X:=float64(8)
 
 	if dy > 0 && dist < float64(b.radius + s.radius) {
 //		fmt.Printf("oldBallX %v\n", b.x)
@@ -233,6 +258,22 @@ func (s *slime) render(r *sdl.Renderer) {
 	gfx.ArcColor(r, int32(s.x), int32(s.y), int32(s.radius), 180, 360, s.color)
 }
 
+func (g *game) renderScore(r *sdl.Renderer, x int32, points int) {
+	amountToWin := 6
+	curX := x
+	xDiff := int32(40)
+
+	for i := 0; i < points; i++ {
+	gfx.FilledCircleColor(r, curX, 50, 10, sdl.Color{150, 255, 255, 255})
+		curX += xDiff
+	}
+	for i := 0; i < int(amountToWin - points); i++ {
+		gfx.CircleColor(r, curX, 50, 10, sdl.Color{150, 255, 255, 255})
+		curX += xDiff
+	}
+
+}
+
 func (n *net) render(r *sdl.Renderer) {
 	rect := &sdl.Rect{int32(n.x), n.y, n.w, n.h}
 	r.SetDrawColor(255, 255, 255, 255)
@@ -248,6 +289,9 @@ func (g *game) render(r *sdl.Renderer) {
 	g.slime1.render(r)
 	g.slime2.render(r)
 	g.ball.render(r)
+
+	g.renderScore(r, 25, g.slime1Pts)
+	g.renderScore(r, 525, g.slime2Pts)
 
 	r.Present()
 }
