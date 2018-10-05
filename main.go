@@ -57,7 +57,6 @@ func main() {
 				case sdl.K_RIGHT:
 					g.handlePlayer2RightTouch(e.State)
 				case sdl.K_UP:
-					fmt.Printf("Up was touched")
 					g.handlePlayer2UpTouch(e.State)
 				}
 			}

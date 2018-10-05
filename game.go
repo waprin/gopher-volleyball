@@ -5,6 +5,8 @@ import (
 	"time"
 	"github.com/veandco/go-sdl2/gfx"
 	"math"
+	"fmt"
+	"github.com/veandco/go-sdl2/ttf"
 )
 
 var count = 0
@@ -22,6 +24,7 @@ type game struct {
 	height int32
 
 	slime1Pts, slime2Pts int
+	lastPtPlayer1 bool
 }
 
 type slime struct {
@@ -52,14 +55,14 @@ func newGame (w, h int32) *game {
 	var netHeight int32 = 40
 	var netWidth int32 = 10
 	return &game{
-		ball: &ball{x:200, y: 300, radius: 10},
+		ball: &ball{x:200, y: 250, radius: 10},
 		slime1: &slime{x:200, y: 600, radius: 50, color: sdl.Color{255, 0, 0,255}},
 		slime2: &slime{x:700, y: 600, radius: 50, color: sdl.Color{0, 255, 0, 255}},
 		width: w,
 		height: h,
 		net: &net{x: w/2 - netWidth/2, y: h-netHeight, w: netWidth, h: netHeight},
-		slime1Pts: 3,
-		slime2Pts: 2,
+		slime1Pts: 0,
+		slime2Pts: 0,
 	}
 }
 
@@ -107,7 +110,7 @@ func (g *game) handlePlayer2UpTouch(state uint8) {
 	}
 }
 
-func (g *game) tick() {
+func (g *game) tick() bool {
 	count++
 	g.ball.velocityY += gravity
 
@@ -152,9 +155,14 @@ func (g *game) tick() {
 	g.checkWallsBall()
 	g.checkNetBall()
 
-	if int32(g.ball.y + g.ball.radius) >= 600 {
-		g.ball.velocityY *= -1
+	return g.checkBallFloor()
+}
+
+func (g *game) checkBallFloor() bool {
+	if int32(g.ball.y - g.ball.radius) >= g.height {
+		return true
 	}
+	return false
 }
 
 func (g *game) checkNetBall() {
@@ -216,23 +224,16 @@ func (s *slime) touch(b *ball) {
 	MAX_VELOCITY_Y:=float64(6)
 	MAX_VELOCITY_X:=float64(8)
 
-	if dy > 0 && dist < float64(b.radius + s.radius) {
-//		fmt.Printf("oldBallX %v\n", b.x)
-//		fmt.Printf("oldBallY %v\n", ballY)
-
-
+	if dy > 0 && dist < float64(b.radius + s.radius) && dist > 5 {
 		b.x = s.x + (s.radius + b.radius) / 2 * (dx / dist)
 		ballY = slimeY + s.radius + b.radius * (dy/dist)
-
-//		fmt.Printf("newBallX %v\n", b.x)
-//		fmt.Printf("newBallY %v\n", ballY)
 
 		b.y = HEIGHT - ballY
 
 		smth := (dx * dVelocityX + dy * dVelocityY) / dist
 		if smth <= 0 {
-			b.velocityX = s.velocityX -2 * dx * smth / dist
-			ballVelocityY = s.velocityY - 2 * dy * smth / dist
+			b.velocityX += s.velocityX -2 * dx * smth / dist
+			ballVelocityY += s.velocityY - 2 * dy * smth / dist
 
 			if math.Abs(b.velocityX) >= MAX_VELOCITY_X {
 				if b.velocityX > 0 {
@@ -298,18 +299,74 @@ func (g *game) render(r *sdl.Renderer) {
 
 func (g *game) start(r *sdl.Renderer) {
 	lastUpdate:=time.Now()
+	endPoint := false
+	var endPointTimer time.Time
 	go func() {
+		point := false
 		for {
 			diff := time.Since(lastUpdate)
 			if diff > 10*time.Millisecond {
 				lastUpdate = time.Now()
-				g.tick()
-				g.render(r)
+
+				if endPoint {
+					g.renderPoint(r)
+					if time.Since(endPointTimer) > 1 * time.Second {
+						g.resetGame()
+						endPoint=false
+					}
+				} else {
+					point = g.tick()
+					if point {
+						endPointTimer = time.Now()
+						endPoint = true
+					}
+					g.render(r)
+				}
+
 			}
 		}
 	}()
 }
 
+func (g *game) resetGame() {
+	fmt.Printf("resetting game\n")
+	g.ball.y = 250
+	g.ball.x = 200
+	g.slime1.x = 200
+}
+
+func (g *game) renderPoint(r *sdl.Renderer) error {
+	f, err := ttf.OpenFont("fonts/OpenSans-Regular.ttf", 16)
+	if err != nil {
+		return fmt.Errorf("could not load font: %v", err)
+	}
+	defer f.Close()
+
+	c := sdl.Color{R: 255, G: 255, B: 255, A: 255}
+
+	var s *sdl.Surface
+	if g.lastPtPlayer1 {
+		s, err = f.RenderUTF8Solid("Player 1 Scored!", c)
+	} else {
+		s, err = f.RenderUTF8Solid("Player 2 Scored!", c)
+	}
+	if err != nil {
+		return fmt.Errorf("Could not create texture")
+	}
+
+	t, err := r.CreateTextureFromSurface(s)
+	if err != nil {
+		return fmt.Errorf("Could not create texture ")
+	}
+	defer t.Destroy()
+
+	if err := r.Copy(t, nil, &sdl.Rect{300, 100, 200, 200}); err != nil {
+		return fmt.Errorf("could not copy texture: ")
+	}
+
+	r.Present()
+	return nil
+}
 
 func (ball *ball) render(r *sdl.Renderer) {
 	gfx.ArcColor(r, int32(ball.x), int32(ball.y), int32(ball.radius), 1, 360, sdl.Color{255, 255, 255, 255})
