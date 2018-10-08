@@ -13,6 +13,16 @@ var count = 0
 
 const (
 	gravity = 0.1
+	initialSlime1X = 200
+	initialSlime2X = 500
+)
+
+type gameMode int
+
+const (
+	playing gameMode = iota
+	pointScored
+	matchEnded
 )
 
 type game struct {
@@ -23,8 +33,14 @@ type game struct {
 	width int32
 	height int32
 
+	mode gameMode
+
 	slime1Pts, slime2Pts int
 	lastPtPlayer1 bool
+
+	// point scored
+	endpointTimer time.Time
+
 }
 
 type slime struct {
@@ -56,13 +72,24 @@ func newGame (w, h int32) *game {
 	var netWidth int32 = 10
 	return &game{
 		ball: &ball{x:200, y: 250, radius: 10},
-		slime1: &slime{x:200, y: 600, radius: 50, color: sdl.Color{255, 0, 0,255}},
-		slime2: &slime{x:700, y: 600, radius: 50, color: sdl.Color{0, 255, 0, 255}},
+		slime1: &slime{
+			x: initialSlime1X,
+			y: float64(h),
+			radius: 50,
+			color: sdl.Color{255, 0, 0,255},
+		},
+		slime2: &slime{
+			x:700,
+			y: float64(h),
+			radius: 50,
+			color: sdl.Color{0, 255, 0, 255},
+		},
 		width: w,
 		height: h,
 		net: &net{x: w/2 - netWidth/2, y: h-netHeight, w: netWidth, h: netHeight},
 		slime1Pts: 0,
 		slime2Pts: 0,
+		mode: playing,
 	}
 }
 
@@ -110,7 +137,7 @@ func (g *game) handlePlayer2UpTouch(state uint8) {
 	}
 }
 
-func (g *game) tick() bool {
+func (g *game) tick() {
 	count++
 	g.ball.velocityY += gravity
 
@@ -155,14 +182,19 @@ func (g *game) tick() bool {
 	g.checkWallsBall()
 	g.checkNetBall()
 
-	return g.checkBallFloor()
+	g.checkBallFloor()
 }
 
-func (g *game) checkBallFloor() bool {
+func (g *game) checkBallFloor() {
 	if int32(g.ball.y - g.ball.radius) >= g.height {
-		return true
+		if g.ball.x < float64(g.net.x) {
+			g.slime2Pts++
+		} else {
+			g.slime1Pts++
+		}
+		g.mode = pointScored
+		g.endpointTimer = time.Now()
 	}
-	return false
 }
 
 func (g *game) checkNetBall() {
@@ -265,11 +297,11 @@ func (g *game) renderScore(r *sdl.Renderer, x int32, points int) {
 	xDiff := int32(40)
 
 	for i := 0; i < points; i++ {
-	gfx.FilledCircleColor(r, curX, 50, 10, sdl.Color{150, 255, 255, 255})
+	gfx.FilledCircleColor(r, curX, 50, 10, sdl.Color{0, 255, 255, 255})
 		curX += xDiff
 	}
 	for i := 0; i < int(amountToWin - points); i++ {
-		gfx.CircleColor(r, curX, 50, 10, sdl.Color{150, 255, 255, 255})
+		gfx.CircleColor(r, curX, 50, 10, sdl.Color{0, 255, 255, 255})
 		curX += xDiff
 	}
 
@@ -297,46 +329,52 @@ func (g *game) render(r *sdl.Renderer) {
 	r.Present()
 }
 
+func (g *game) gameLoop(r  *sdl.Renderer) {
+	if g.mode == pointScored {
+		g.renderPoint(r)
+		if time.Since(g.endpointTimer) > 1 * time.Second {
+			g.resetGame()
+			g.mode = playing
+		}
+	} else if g.mode == playing {
+		g.tick()
+		g.render(r)
+	}
+}
+
 func (g *game) start(r *sdl.Renderer) {
 	lastUpdate:=time.Now()
-	endPoint := false
-	var endPointTimer time.Time
 	go func() {
-		point := false
 		for {
 			diff := time.Since(lastUpdate)
 			if diff > 10*time.Millisecond {
+				g.gameLoop(r)
 				lastUpdate = time.Now()
-
-				if endPoint {
-					g.renderPoint(r)
-					if time.Since(endPointTimer) > 1 * time.Second {
-						g.resetGame()
-						endPoint=false
-					}
-				} else {
-					point = g.tick()
-					if point {
-						endPointTimer = time.Now()
-						endPoint = true
-					}
-					g.render(r)
-				}
-
 			}
 		}
 	}()
 }
 
 func (g *game) resetGame() {
-	fmt.Printf("resetting game\n")
 	g.ball.y = 250
 	g.ball.x = 200
-	g.slime1.x = 200
+
+	g.ball.velocityY = 0
+	g.ball.velocityX = 0
+
+	g.slime1.velocityX = 0
+	g.slime1.velocityY = 0
+	g.slime1.x = initialSlime1X
+	g.slime1.y = float64(g.height)
+
+	g.slime2.velocityX = 0
+	g.slime2.velocityY = 0
+	g.slime2.x = initialSlime2X
+	g.slime2.velocityY = float64(g.height)
 }
 
 func (g *game) renderPoint(r *sdl.Renderer) error {
-	f, err := ttf.OpenFont("fonts/OpenSans-Regular.ttf", 16)
+	f, err := ttf.OpenFont("fonts/OpenSans-Regular.ttf", 24)
 	if err != nil {
 		return fmt.Errorf("could not load font: %v", err)
 	}
