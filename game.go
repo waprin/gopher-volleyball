@@ -154,7 +154,14 @@ func (g *game) handlePlayer2UpTouch(state uint8) {
 }
 
 func (g *game) handleSpaceBar(state uint8) {
-
+	fmt.Printf("space bar pressed")
+	if g.mode == matchEnded {
+		fmt.Printf("space bar match endedd")
+		g.resetPoint()
+		g.slime2Pts = 0
+		g.slime1Pts = 0
+		g.mode = playing
+	}
 }
 
 func (g *game) tick() {
@@ -319,7 +326,7 @@ func (s *slime) render(r *sdl.Renderer) {
 }
 
 func (g *game) renderBackground(r *sdl.Renderer) {
-
+	r.Copy(g.backgroundTex, nil, nil)
 }
 
 func (g *game) renderScore(r *sdl.Renderer, x int32, points int) {
@@ -347,7 +354,7 @@ func (n *net) render(r *sdl.Renderer) {
 func (g *game) render(r *sdl.Renderer) {
 	r.SetDrawColor(0, 0, 0, 255)
 	r.Clear()
-	r.Copy(g.backgroundTex, nil, nil)
+	g.renderBackground(r)
 
 	g.net.render(r)
 
@@ -409,8 +416,8 @@ func (g *game) resetPoint() {
 	g.slime2.velocityY = float64(g.height)
 }
 
-func (g *game) writeText(r *sdl.Renderer, text string) error {
-	c := sdl.Color{R: 255, G: 255, B: 255, A: 255}
+func (g *game) writeText(r *sdl.Renderer, text string, rect *sdl.Rect) error {
+	c := sdl.Color{R: 0, G: 0, B: 0, A: 255}
 	s, err := g.font.RenderUTF8Solid(text, c)
 	if err != nil {
 		return fmt.Errorf("Could not create surface ")
@@ -421,7 +428,7 @@ func (g *game) writeText(r *sdl.Renderer, text string) error {
 	}
 	defer t.Destroy()
 
-	if err := r.Copy(t, nil, &sdl.Rect{300, 100, 200, 200}); err != nil {
+	if err := r.Copy(t, nil, rect); err != nil {
 		return fmt.Errorf("could not copy texture: ")
 	}
 	return nil
@@ -429,24 +436,32 @@ func (g *game) writeText(r *sdl.Renderer, text string) error {
 
 func (g *game) renderPoint(r *sdl.Renderer) error {
 	var err error
+	r.SetDrawColor(0, 0, 0, 255)
 	if g.lastPtPlayer1 {
-		err = g.writeText(r, "Player 1 scored!")
+		err = g.writeText(r, "Player 1 scored!", &sdl.Rect{200, 100, 300, 200})
 	} else {
-		err = g.writeText(r, "Player 2 scored!")
+		err = g.writeText(r, "Player 2 scored!", &sdl.Rect{200, 100, 300, 200})
 	}
 	return err
 }
 
 func (g *game) renderMatchOver(r *sdl.Renderer) error {
-	r.SetDrawColor(0, 0, 0, 255)
+	r.SetDrawColor(255, 255, 255, 255)
 	r.Clear()
 	g.renderBackground(r)
 
 	if g.slime1Pts == 7 {
-		return g.writeText(r, "Player 1 Won!")
+		err := g.writeText(r, "Player 1 Won!", &sdl.Rect{200, 100, 300, 200})
+		if err != nil {
+			return err
+		}
 	} else {
-		return g.writeText(r, "Player 2 Won!")
+		err := g.writeText(r, "Player 2 Won!", &sdl.Rect{200, 100, 300, 200})
+		if err != nil {
+			return err
+		}
 	}
+	g.writeText(r,"Press spacebar to play again.", &sdl.Rect{200, 200, 300, 200})
 	return nil
 }
 

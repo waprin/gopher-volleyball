@@ -62,7 +62,7 @@ func main() {
 					g.handlePlayer2RightTouch(e.State)
 				case sdl.K_UP:
 					g.handlePlayer2UpTouch(e.State)
-				case sdl.K_0:
+				case sdl.K_SPACE:
 					g.handleSpaceBar(e.State)
 				}
 			}
