@@ -7,6 +7,7 @@ import (
 	"math"
 	"fmt"
 	"github.com/veandco/go-sdl2/ttf"
+	"github.com/veandco/go-sdl2/img"
 )
 
 var count = 0
@@ -41,6 +42,8 @@ type game struct {
 	// point scored
 	endpointTimer time.Time
 
+	backgroundTex *sdl.Texture
+	font *ttf.Font
 }
 
 type slime struct {
@@ -67,9 +70,20 @@ type net struct {
 	w int32
 }
 
-func newGame (w, h int32) *game {
+func newGame (r *sdl.Renderer, w, h int32) (*game, error) {
+	bg, err := img.LoadTexture(r, "image/sky2.jpg")
+	if err != nil {
+		return nil, fmt.Errorf("could not load background image: %v", err)
+	}
+
+	f, err := ttf.OpenFont("fonts/OpenSans-Regular.ttf", 24)
+	if err != nil {
+		return nil, fmt.Errorf("could not load font: %v", err)
+	}
+
 	var netHeight int32 = 40
 	var netWidth int32 = 10
+
 	return &game{
 		ball: &ball{x:200, y: 250, radius: 10},
 		slime1: &slime{
@@ -90,7 +104,9 @@ func newGame (w, h int32) *game {
 		slime1Pts: 0,
 		slime2Pts: 0,
 		mode: playing,
-	}
+		backgroundTex: bg,
+		font: f,
+	}, nil
 }
 
 func (g *game) handlePlayer1LeftTouch(state uint8) {
@@ -135,6 +151,10 @@ func (g *game) handlePlayer2UpTouch(state uint8) {
 	if state == 1 {
 		g.slime2.velocityY = -3
 	}
+}
+
+func (g *game) handleSpaceBar(state uint8) {
+
 }
 
 func (g *game) tick() {
@@ -189,15 +209,16 @@ func (g *game) checkBallFloor() {
 	if int32(g.ball.y - g.ball.radius) >= g.height {
 		if g.ball.x < float64(g.net.x) {
 			g.slime2Pts++
+			g.lastPtPlayer1 = false
 		} else {
 			g.slime1Pts++
+			g.lastPtPlayer1 = true
 		}
 
 		if g.slime1Pts == 7 || g.slime2Pts == 7 {
 			g.mode = matchEnded
-
+			return
 		}
-
 		g.mode = pointScored
 		g.endpointTimer = time.Now()
 	}
@@ -297,17 +318,21 @@ func (s *slime) render(r *sdl.Renderer) {
 	gfx.ArcColor(r, int32(s.x), int32(s.y), int32(s.radius), 180, 360, s.color)
 }
 
+func (g *game) renderBackground(r *sdl.Renderer) {
+
+}
+
 func (g *game) renderScore(r *sdl.Renderer, x int32, points int) {
 	amountToWin := 7
 	curX := x
 	xDiff := int32(40)
 
 	for i := 0; i < points; i++ {
-	gfx.FilledCircleColor(r, curX, 50, 10, sdl.Color{0, 255, 255, 255})
+	gfx.FilledCircleColor(r, curX, 50, 10, sdl.Color{0, 0, 0, 255})
 		curX += xDiff
 	}
 	for i := 0; i < int(amountToWin - points); i++ {
-		gfx.CircleColor(r, curX, 50, 10, sdl.Color{0, 255, 255, 255})
+		gfx.CircleColor(r, curX, 50, 10, sdl.Color{0, 0, 0, 255})
 		curX += xDiff
 	}
 
@@ -322,6 +347,7 @@ func (n *net) render(r *sdl.Renderer) {
 func (g *game) render(r *sdl.Renderer) {
 	r.SetDrawColor(0, 0, 0, 255)
 	r.Clear()
+	r.Copy(g.backgroundTex, nil, nil)
 
 	g.net.render(r)
 
@@ -338,10 +364,13 @@ func (g *game) gameLoop(r  *sdl.Renderer) {
 		g.render(r)
 		g.renderPoint(r)
 		r.Present()
-		if time.Since(g.endpointTimer) > 10 * time.Second {
-			g.resetGame()
+		if time.Since(g.endpointTimer) > 1 * time.Second {
+			g.resetPoint()
 			g.mode = playing
 		}
+	} else if g.mode == matchEnded {
+		g.renderMatchOver(r)
+		r.Present()
 	} else if g.mode == playing {
 		g.tick()
 		g.render(r)
@@ -362,7 +391,7 @@ func (g *game) start(r *sdl.Renderer) {
 	}()
 }
 
-func (g *game) resetGame() {
+func (g *game) resetPoint() {
 	g.ball.y = 250
 	g.ball.x = 200
 
@@ -380,25 +409,12 @@ func (g *game) resetGame() {
 	g.slime2.velocityY = float64(g.height)
 }
 
-func (g *game) renderPoint(r *sdl.Renderer) error {
-	f, err := ttf.OpenFont("fonts/OpenSans-Regular.ttf", 24)
-	if err != nil {
-		return fmt.Errorf("could not load font: %v", err)
-	}
-	defer f.Close()
-
+func (g *game) writeText(r *sdl.Renderer, text string) error {
 	c := sdl.Color{R: 255, G: 255, B: 255, A: 255}
-
-	var s *sdl.Surface
-	if g.lastPtPlayer1 {
-		s, err = f.RenderUTF8Solid("Player 1 Scored!", c)
-	} else {
-		s, err = f.RenderUTF8Solid("Player 2 Scored!", c)
-	}
+	s, err := g.font.RenderUTF8Solid(text, c)
 	if err != nil {
-		return fmt.Errorf("Could not create texture")
+		return fmt.Errorf("Could not create surface ")
 	}
-
 	t, err := r.CreateTextureFromSurface(s)
 	if err != nil {
 		return fmt.Errorf("Could not create texture ")
@@ -407,6 +423,29 @@ func (g *game) renderPoint(r *sdl.Renderer) error {
 
 	if err := r.Copy(t, nil, &sdl.Rect{300, 100, 200, 200}); err != nil {
 		return fmt.Errorf("could not copy texture: ")
+	}
+	return nil
+}
+
+func (g *game) renderPoint(r *sdl.Renderer) error {
+	var err error
+	if g.lastPtPlayer1 {
+		err = g.writeText(r, "Player 1 scored!")
+	} else {
+		err = g.writeText(r, "Player 2 scored!")
+	}
+	return err
+}
+
+func (g *game) renderMatchOver(r *sdl.Renderer) error {
+	r.SetDrawColor(0, 0, 0, 255)
+	r.Clear()
+	g.renderBackground(r)
+
+	if g.slime1Pts == 7 {
+		return g.writeText(r, "Player 1 Won!")
+	} else {
+		return g.writeText(r, "Player 2 Won!")
 	}
 	return nil
 }

@@ -1,10 +1,11 @@
 package main
 
 import (
-	"github.com/veandco/go-sdl2/sdl"
 	"fmt"
 	"os"
+	"github.com/veandco/go-sdl2/sdl"
 	"github.com/veandco/go-sdl2/ttf"
+
 )
 
 const (
@@ -34,7 +35,10 @@ func main() {
 	defer r.Destroy()
 
 	running := true
-	g := newGame(Width, Height)
+	g, err := newGame(r, Width, Height)
+	if err != nil {
+		fmt.Printf("Could not initialize game: %v", err)
+	}
 	g.start(r)
 
 	for running == true {
@@ -58,6 +62,8 @@ func main() {
 					g.handlePlayer2RightTouch(e.State)
 				case sdl.K_UP:
 					g.handlePlayer2UpTouch(e.State)
+				case sdl.K_0:
+					g.handleSpaceBar(e.State)
 				}
 			}
 		}
