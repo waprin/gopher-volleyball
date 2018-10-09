@@ -192,6 +192,12 @@ func (g *game) checkBallFloor() {
 		} else {
 			g.slime1Pts++
 		}
+
+		if g.slime1Pts == 7 || g.slime2Pts == 7 {
+			g.mode = matchEnded
+
+		}
+
 		g.mode = pointScored
 		g.endpointTimer = time.Now()
 	}
@@ -292,7 +298,7 @@ func (s *slime) render(r *sdl.Renderer) {
 }
 
 func (g *game) renderScore(r *sdl.Renderer, x int32, points int) {
-	amountToWin := 6
+	amountToWin := 7
 	curX := x
 	xDiff := int32(40)
 
@@ -324,21 +330,22 @@ func (g *game) render(r *sdl.Renderer) {
 	g.ball.render(r)
 
 	g.renderScore(r, 25, g.slime1Pts)
-	g.renderScore(r, 525, g.slime2Pts)
-
-	r.Present()
+	g.renderScore(r, 475, g.slime2Pts)
 }
 
 func (g *game) gameLoop(r  *sdl.Renderer) {
 	if g.mode == pointScored {
+		g.render(r)
 		g.renderPoint(r)
-		if time.Since(g.endpointTimer) > 1 * time.Second {
+		r.Present()
+		if time.Since(g.endpointTimer) > 10 * time.Second {
 			g.resetGame()
 			g.mode = playing
 		}
 	} else if g.mode == playing {
 		g.tick()
 		g.render(r)
+		r.Present()
 	}
 }
 
@@ -401,8 +408,6 @@ func (g *game) renderPoint(r *sdl.Renderer) error {
 	if err := r.Copy(t, nil, &sdl.Rect{300, 100, 200, 200}); err != nil {
 		return fmt.Errorf("could not copy texture: ")
 	}
-
-	r.Present()
 	return nil
 }
 
