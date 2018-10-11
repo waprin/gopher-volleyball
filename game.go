@@ -53,6 +53,7 @@ type slime struct {
 	velocityX float64
 	velocityY float64
 	color sdl.Color
+	tex *sdl.Texture
 }
 
 type ball struct {
@@ -71,10 +72,21 @@ type net struct {
 }
 
 func newGame (r *sdl.Renderer, w, h int32) (*game, error) {
-	bg, err := img.LoadTexture(r, "image/sky2.jpg")
+	bg, err := img.LoadTexture(r, "image/background.png")
 	if err != nil {
 		return nil, fmt.Errorf("could not load background image: %v", err)
 	}
+
+	slime1, err := img.LoadTexture(r, "image/slime175green.png")
+	if err != nil {
+		return nil, fmt.Errorf("could not load slime image: %v", err)
+	}
+
+	slime2, err := img.LoadTexture(r, "image/slime175red.png")
+	if err != nil {
+		return nil, fmt.Errorf("could not load slime image: %v", err)
+	}
+
 
 	f, err := ttf.OpenFont("fonts/OpenSans-Regular.ttf", 24)
 	if err != nil {
@@ -91,12 +103,14 @@ func newGame (r *sdl.Renderer, w, h int32) (*game, error) {
 			y: float64(h),
 			radius: 50,
 			color: sdl.Color{255, 0, 0,255},
+			tex: slime1,
 		},
 		slime2: &slime{
-			x:700,
+			x:550,
 			y: float64(h),
 			radius: 50,
 			color: sdl.Color{0, 255, 0, 255},
+			tex: slime2,
 		},
 		width: w,
 		height: h,
@@ -111,7 +125,7 @@ func newGame (r *sdl.Renderer, w, h int32) (*game, error) {
 
 func (g *game) handlePlayer1LeftTouch(state uint8) {
 	if state == 1 {
-		g.slime1.velocityX = -6
+		g.slime1.velocityX = -5
 	} else {
 		g.slime1.velocityX = 0
 	}
@@ -119,7 +133,7 @@ func (g *game) handlePlayer1LeftTouch(state uint8) {
 
 func (g *game) handlePlayer1RightTouch(state uint8) {
 	if state == 1 {
-		g.slime1.velocityX = 6
+		g.slime1.velocityX = 5
 	} else {
 		g.slime1.velocityX = 0
 	}
@@ -133,7 +147,7 @@ func (g *game) handlePlayer1UpTouch(state uint8) {
 
 func (g *game) handlePlayer2LeftTouch(state uint8) {
 	if state == 1 {
-		g.slime2.velocityX = -6
+		g.slime2.velocityX = -5
 	} else {
 		g.slime2.velocityX = 0
 	}
@@ -141,7 +155,7 @@ func (g *game) handlePlayer2LeftTouch(state uint8) {
 
 func (g *game) handlePlayer2RightTouch(state uint8) {
 	if state == 1 {
-		g.slime2.velocityX = 6
+		g.slime2.velocityX = 5
 	} else {
 		g.slime2.velocityX = 0
 	}
@@ -322,7 +336,9 @@ func (s *slime) touch(b *ball) {
 }
 
 func (s *slime) render(r *sdl.Renderer) {
-	gfx.ArcColor(r, int32(s.x), int32(s.y), int32(s.radius), 180, 360, s.color)
+//  ArcColor call might be useful for debugging to render physics arc more directly
+//	gfx.ArcColor(r, int32(s.x), int32(s.y), int32(s.radius), 180, 360, s.color)
+	r.Copy(s.tex, nil, &sdl.Rect{int32(s.x-s.radius), int32(s.y-s.radius), int32(s.radius*2), int32(s.radius)})
 }
 
 func (g *game) renderBackground(r *sdl.Renderer) {
@@ -335,7 +351,7 @@ func (g *game) renderScore(r *sdl.Renderer, x int32, points int) {
 	xDiff := int32(40)
 
 	for i := 0; i < points; i++ {
-	gfx.FilledCircleColor(r, curX, 50, 10, sdl.Color{0, 0, 0, 255})
+		gfx.FilledCircleColor(r, curX, 50, 10, sdl.Color{0, 0, 0, 255})
 		curX += xDiff
 	}
 	for i := 0; i < int(amountToWin - points); i++ {
@@ -466,5 +482,6 @@ func (g *game) renderMatchOver(r *sdl.Renderer) error {
 }
 
 func (ball *ball) render(r *sdl.Renderer) {
-	gfx.ArcColor(r, int32(ball.x), int32(ball.y), int32(ball.radius), 1, 360, sdl.Color{255, 255, 255, 255})
+//	gfx.ArcColor(r, int32(ball.x), int32(ball.y), int32(ball.radius), 1, 360, sdl.Color{255, 255, 255, 255})
+	gfx.FilledCircleColor(r, int32(ball.x), int32(ball.y), 10, sdl.Color{255, 255, 255, 255})
 }
