@@ -77,12 +77,12 @@ func newGame (r *sdl.Renderer, w, h int32) (*game, error) {
 		return nil, fmt.Errorf("could not load background image: %v", err)
 	}
 
-	slime1, err := img.LoadTexture(r, "image/slime175green.png")
+	slime1, err := img.LoadTexture(r, "image/greenslimegopher.png")
 	if err != nil {
 		return nil, fmt.Errorf("could not load slime image: %v", err)
 	}
 
-	slime2, err := img.LoadTexture(r, "image/slime175red.png")
+	slime2, err := img.LoadTexture(r, "image/redslimegopher.png")
 	if err != nil {
 		return nil, fmt.Errorf("could not load slime image: %v", err)
 	}
