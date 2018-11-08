@@ -1,4 +1,4 @@
-# Slime Gopher
+# Gopher Volleyball
 
 Slime volleyball implemented in Go with the SDL 2 bindings
 
