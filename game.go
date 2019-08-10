@@ -24,6 +24,14 @@ const (
 	playing gameMode = iota
 	pointScored
 	matchEnded
+	intro
+)
+
+type color int
+
+const (
+	textWhite = iota
+	textBlack
 )
 
 type game struct {
@@ -44,6 +52,7 @@ type game struct {
 
 	backgroundTex *sdl.Texture
 	font *ttf.Font
+	smallFont *ttf.Font
 }
 
 type slime struct {
@@ -88,7 +97,12 @@ func newGame (r *sdl.Renderer, w, h int32) (*game, error) {
 	}
 
 
-	f, err := ttf.OpenFont("fonts/OpenSans-Regular.ttf", 24)
+	f, err := ttf.OpenFont("fonts/OpenSans-Regular.ttf", 200)
+	if err != nil {
+		return nil, fmt.Errorf("could not load font: %v", err)
+	}
+
+	smallF, err := ttf.OpenFont("fonts/OpenSans-Regular.ttf", 12)
 	if err != nil {
 		return nil, fmt.Errorf("could not load font: %v", err)
 	}
@@ -117,9 +131,10 @@ func newGame (r *sdl.Renderer, w, h int32) (*game, error) {
 		net: &net{x: w/2 - netWidth/2, y: h-netHeight, w: netWidth, h: netHeight},
 		slime1Pts: 0,
 		slime2Pts: 0,
-		mode: playing,
+		mode: intro,
 		backgroundTex: bg,
 		font: f,
+		smallFont: smallF,
 	}, nil
 }
 
@@ -398,6 +413,9 @@ func (g *game) gameLoop(r  *sdl.Renderer) {
 		g.tick()
 		g.render(r)
 		r.Present()
+	} else if g.mode == intro {
+		g.renderIntro(r)
+		r.Present()
 	}
 }
 
@@ -432,9 +450,20 @@ func (g *game) resetPoint() {
 	g.slime2.velocityY = float64(g.height)
 }
 
-func (g *game) writeText(r *sdl.Renderer, text string, rect *sdl.Rect) error {
-	c := sdl.Color{R: 0, G: 0, B: 0, A: 255}
-	s, err := g.font.RenderUTF8Solid(text, c)
+func (g *game) writeText(r *sdl.Renderer, text string, rect *sdl.Rect, tc color, big bool) error {
+	var c sdl.Color
+	if tc == textBlack {
+		c = sdl.Color{R: 0, G: 0, B: 0, A: 255}
+	} else if tc == textWhite {
+		c = sdl.Color{R: 255, G: 255, B: 255, A: 255}
+	}
+	var s *sdl.Surface
+	var err error
+	if (big) {
+		s, err = g.font.RenderUTF8Solid(text, c)
+	} else {
+		s, err = g.smallFont.RenderUTF8Solid(text, c)
+	}
 	if err != nil {
 		return fmt.Errorf("Could not create surface ")
 	}
@@ -454,9 +483,9 @@ func (g *game) renderPoint(r *sdl.Renderer) error {
 	var err error
 	r.SetDrawColor(0, 0, 0, 255)
 	if g.lastPtPlayer1 {
-		err = g.writeText(r, "Player 1 scored!", &sdl.Rect{200, 100, 300, 200})
+		err = g.writeText(r, "Player 1 scored!", &sdl.Rect{200, 100, 300, 200}, textBlack, true)
 	} else {
-		err = g.writeText(r, "Player 2 scored!", &sdl.Rect{200, 100, 300, 200})
+		err = g.writeText(r, "Player 2 scored!", &sdl.Rect{200, 100, 300, 200}, textBlack, true)
 	}
 	return err
 }
@@ -467,19 +496,56 @@ func (g *game) renderMatchOver(r *sdl.Renderer) error {
 	g.renderBackground(r)
 
 	if g.slime1Pts == 7 {
-		err := g.writeText(r, "Player 1 Won!", &sdl.Rect{200, 100, 300, 200})
+		err := g.writeText(r, "Player 1 Won!", &sdl.Rect{200, 100, 300, 200}, textBlack, true)
 		if err != nil {
 			return err
 		}
 	} else {
-		err := g.writeText(r, "Player 2 Won!", &sdl.Rect{200, 100, 300, 200})
+		err := g.writeText(r, "Player 2 Won!", &sdl.Rect{200, 100, 300, 200}, textBlack, true)
 		if err != nil {
 			return err
 		}
 	}
-	g.writeText(r,"Press spacebar to play again.", &sdl.Rect{200, 200, 300, 200})
+	g.writeText(r,"Press spacebar to play again.", &sdl.Rect{200, 200, 300, 200}, textBlack, true)
 	return nil
 }
+
+
+
+func (g *game) renderIntro(r *sdl.Renderer) error {
+	r.SetDrawColor(255, 255, 255, 255)
+	r.Clear()
+	g.renderBackground(r)
+
+	r.SetDrawColor(0, 0, 0, 255)
+
+	rect := &sdl.Rect{int32(100), int32(100), int32(150), int32((100))}
+	r.DrawRect(rect)
+	r.FillRect(rect)
+	g.writeText(r,"Play Vs AI!", &sdl.Rect{100, 100, 150, 50}, textWhite, false)
+
+	rect2 := &sdl.Rect{int32(500), int32(100), int32(150), int32((100))}
+	r.DrawRect(rect2)
+	r.FillRect(rect2)
+	g.writeText(r,"Play 2 Player!", &sdl.Rect{500, 100, 150, 50}, textWhite, false)
+
+	g.writeText(r,"Welcome to Gopher Volleyball!", &sdl.Rect{200, 250, 300, 100}, textBlack, true)
+	return nil
+}
+
+
+func (g *game) handleMouseUp(x int32, y int32) {
+	if g.mode == intro {
+		if x > 100 && x < (100 + 150) && y > 100 && y < (100 + 100) {
+			// start AI game
+			//g.mode = playing
+		}
+		if x > 500 && x < (500 + 150) && y > 100 && y < (100 + 100) {
+			g.mode = playing
+		}
+	}
+}
+
 
 func (ball *ball) render(r *sdl.Renderer) {
 //	gfx.ArcColor(r, int32(ball.x), int32(ball.y), int32(ball.radius), 1, 360, sdl.Color{255, 255, 255, 255})

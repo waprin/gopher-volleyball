@@ -65,6 +65,9 @@ func main() {
 				case sdl.K_SPACE:
 					g.handleSpaceBar(e.State)
 				}
+			case *sdl.MouseButtonEvent:
+				mouseE := event.(*sdl.MouseButtonEvent)
+				g.handleMouseUp(mouseE.X, mouseE.Y)
 			}
 		}
 	}
