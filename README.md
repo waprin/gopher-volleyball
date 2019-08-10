@@ -14,4 +14,4 @@ After that, clone this repo and run:
 
 # License
 
-This project is licensed under the Apache 2 License.
+This project is licensed under the MIT License.
