@@ -27,6 +27,13 @@ const (
 	intro
 )
 
+type opponentMode int
+
+const (
+	opponent2p = iota
+	opponentAI
+)
+
 type color int
 
 const (
@@ -34,15 +41,24 @@ const (
 	textBlack
 )
 
+type aiState int
+
+const (
+	initialAiState = iota
+	enemyCloseToNet
+)
+
 type game struct {
 	ball *ball
 	slime1 *slime
 	slime2 *slime
+	ai *ai
 	net *net
 	width int32
 	height int32
 
 	mode gameMode
+	oppMode opponentMode
 
 	slime1Pts, slime2Pts int
 	lastPtPlayer1 bool
@@ -80,6 +96,11 @@ type net struct {
 	w int32
 }
 
+type ai struct {
+	movement float64
+	state aiState
+}
+
 func newGame (r *sdl.Renderer, w, h int32) (*game, error) {
 	bg, err := img.LoadTexture(r, "image/background.png")
 	if err != nil {
@@ -110,6 +131,8 @@ func newGame (r *sdl.Renderer, w, h int32) (*game, error) {
 	var netHeight int32 = 40
 	var netWidth int32 = 10
 
+
+
 	return &game{
 		ball: &ball{x:200, y: 250, radius: 10},
 		slime1: &slime{
@@ -125,6 +148,10 @@ func newGame (r *sdl.Renderer, w, h int32) (*game, error) {
 			radius: 50,
 			color: sdl.Color{0, 255, 0, 255},
 			tex: slime2,
+		},
+		ai: &ai{
+			movement: 0,
+			state: enemyCloseToNet,
 		},
 		width: w,
 		height: h,
@@ -161,6 +188,9 @@ func (g *game) handlePlayer1UpTouch(state uint8) {
 }
 
 func (g *game) handlePlayer2LeftTouch(state uint8) {
+	if g.oppMode != opponent2p {
+		return
+	}
 	if state == 1 {
 		g.slime2.velocityX = -5
 	} else {
@@ -169,6 +199,9 @@ func (g *game) handlePlayer2LeftTouch(state uint8) {
 }
 
 func (g *game) handlePlayer2RightTouch(state uint8) {
+	if g.oppMode != opponent2p {
+		return
+	}
 	if state == 1 {
 		g.slime2.velocityX = 5
 	} else {
@@ -177,6 +210,9 @@ func (g *game) handlePlayer2RightTouch(state uint8) {
 }
 
 func (g *game) handlePlayer2UpTouch(state uint8) {
+	if g.oppMode != opponent2p {
+		return
+	}
 	if state == 1 {
 		g.slime2.velocityY = -3
 	}
@@ -194,6 +230,11 @@ func (g *game) handleSpaceBar(state uint8) {
 }
 
 func (g *game) tick() {
+
+	if g.oppMode == opponentAI {
+		g.updateAI()
+	}
+
 	count++
 	g.ball.velocityY += gravity
 
@@ -209,7 +250,6 @@ func (g *game) tick() {
 		g.slime1.velocityY = 0
 		g.slime1.y = float64(g.height)
 	}
-
 
 	g.slime2.x += g.slime2.velocityX
 	g.slime2.y += g.slime2.velocityY
@@ -352,7 +392,6 @@ func (s *slime) touch(b *ball) {
 
 func (s *slime) render(r *sdl.Renderer) {
 //  ArcColor call might be useful for debugging to render physics arc more directly
-//	gfx.ArcColor(r, int32(s.x), int32(s.y), int32(s.radius), 180, 360, s.color)
 	r.Copy(s.tex, nil, &sdl.Rect{int32(s.x-s.radius), int32(s.y-s.radius), int32(s.radius*2), int32(s.radius)})
 }
 
@@ -537,10 +576,11 @@ func (g *game) renderIntro(r *sdl.Renderer) error {
 func (g *game) handleMouseUp(x int32, y int32) {
 	if g.mode == intro {
 		if x > 100 && x < (100 + 150) && y > 100 && y < (100 + 100) {
-			// start AI game
-			//g.mode = playing
+			g.oppMode = opponentAI
+			g.mode = playing
 		}
 		if x > 500 && x < (500 + 150) && y > 100 && y < (100 + 100) {
+			g.oppMode = opponent2p
 			g.mode = playing
 		}
 	}
@@ -548,6 +588,5 @@ func (g *game) handleMouseUp(x int32, y int32) {
 
 
 func (ball *ball) render(r *sdl.Renderer) {
-//	gfx.ArcColor(r, int32(ball.x), int32(ball.y), int32(ball.radius), 1, 360, sdl.Color{255, 255, 255, 255})
 	gfx.FilledCircleColor(r, int32(ball.x), int32(ball.y), 10, sdl.Color{255, 255, 255, 255})
 }

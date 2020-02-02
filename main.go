@@ -16,7 +16,7 @@ const (
 func main() {
 	err := sdl.Init(sdl.INIT_EVERYTHING)
 	if err != nil {
-		fmt.Fprint(os.Stderr, "could not initialize SDL: %v", err)
+		fmt.Printf("could not initialize SDL: %v", err)
 		os.Exit(1)
 	}
 	defer sdl.Quit()
