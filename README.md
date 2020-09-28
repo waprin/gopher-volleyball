@@ -3,14 +3,33 @@
 Slime volleyball implemented in Go with the SDL 2 bindings
 
 
-# Installation
+## Installation
 
 First install the SDL2 bindings for Go by following the instructions
 [here](https://github.com/veandco/go-sdl2).
 
 After that, clone this repo and run:
 
-    go run main.go game.go
+    make run
+
+## Buildig a binary
+
+To build a binary:
+
+```
+    make build 
+```    
+
+## Tests
+
+To run tests
+
+```
+    make test
+
+```
+
+
 
 # License
 

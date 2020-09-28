@@ -13,9 +13,9 @@ import (
 var count = 0
 
 const (
-	gravity = 0.1
+	gravity = 0.15
 	initialSlime1X = 200
-	initialSlime2X = 500
+	initialSlime2X = 600
 )
 
 type gameMode int
@@ -143,7 +143,7 @@ func newGame (r *sdl.Renderer, w, h int32) (*game, error) {
 			tex: slime1,
 		},
 		slime2: &slime{
-			x:550,
+			x: initialSlime2X,
 			y: float64(h),
 			radius: 50,
 			color: sdl.Color{0, 255, 0, 255},
@@ -151,7 +151,7 @@ func newGame (r *sdl.Renderer, w, h int32) (*game, error) {
 		},
 		ai: &ai{
 			movement: 0,
-			state: enemyCloseToNet,
+			state: initialAiState,
 		},
 		width: w,
 		height: h,
@@ -174,6 +174,7 @@ func (g *game) handlePlayer1LeftTouch(state uint8) {
 }
 
 func (g *game) handlePlayer1RightTouch(state uint8) {
+
 	if state == 1 {
 		g.slime1.velocityX = 5
 	} else {
@@ -183,7 +184,7 @@ func (g *game) handlePlayer1RightTouch(state uint8) {
 
 func (g *game) handlePlayer1UpTouch(state uint8) {
 	if state == 1 {
-		g.slime1.velocityY = -3
+		g.slime1.velocityY = -5
 	}
 }
 
@@ -199,6 +200,7 @@ func (g *game) handlePlayer2LeftTouch(state uint8) {
 }
 
 func (g *game) handlePlayer2RightTouch(state uint8) {
+	fmt.Printf("player 2 x is %v", g.slime2.x)
 	if g.oppMode != opponent2p {
 		return
 	}
@@ -345,7 +347,7 @@ func (s *slime) touch(b *ball) {
 	ballY := HEIGHT - b.y
 	slimeY := HEIGHT - s.y
 
-	dx := 2 * (b.x - s.x)
+	dx := b.x - s.x
 	dy := ballY - slimeY
 	dist := math.Sqrt(float64(dx * dx + dy * dy))
 
@@ -355,38 +357,35 @@ func (s *slime) touch(b *ball) {
 	dVelocityX := b.velocityX  - s.velocityX
 	dVelocityY := ballVelocityY - slimeVelocityY
 
+	MAX_VELOCITY_Y := float64(5)
+	MAX_VELOCITY_X := float64(7)
 
-	MAX_VELOCITY_Y:=float64(6)
-	MAX_VELOCITY_X:=float64(8)
-
-	if dy > 0 && dist < float64(b.radius + s.radius) && dist > 5 {
+	if dist < float64(b.radius + s.radius) {
 		b.x = s.x + (s.radius + b.radius) / 2 * (dx / dist)
 		ballY = slimeY + s.radius + b.radius * (dy/dist)
 
 		b.y = HEIGHT - ballY
 
-		smth := (dx * dVelocityX + dy * dVelocityY) / dist
-		if smth <= 0 {
-			b.velocityX += s.velocityX -2 * dx * smth / dist
-			ballVelocityY += s.velocityY - 2 * dy * smth / dist
+		magnitude := (dx * dVelocityX + dy * dVelocityY) / dist
 
-			if math.Abs(b.velocityX) >= MAX_VELOCITY_X {
-				if b.velocityX > 0 {
-					b.velocityX = MAX_VELOCITY_X
-				} else {
-					b.velocityX = -1 * MAX_VELOCITY_X
-				}
+		b.velocityX += s.velocityX - (2 * dx * magnitude / dist)
+		ballVelocityY += (-1 * s.velocityY) - (2 * dy * magnitude / dist)
+
+		if math.Abs(b.velocityX) >= MAX_VELOCITY_X {
+			if b.velocityX > 0 {
+				b.velocityX = MAX_VELOCITY_X
+			} else {
+				b.velocityX = -1 * MAX_VELOCITY_X
 			}
-			if math.Abs(ballVelocityY) >= MAX_VELOCITY_Y {
-				if ballVelocityY > 0 {
-					ballVelocityY = MAX_VELOCITY_Y
-				} else {
-					ballVelocityY = -1 * MAX_VELOCITY_Y
-				}
-			}
-			b.velocityY = -1 * ballVelocityY
 		}
-
+		if math.Abs(ballVelocityY) >= MAX_VELOCITY_Y {
+			if ballVelocityY > 0 {
+				ballVelocityY = MAX_VELOCITY_Y
+			} else {
+				ballVelocityY = -1 * MAX_VELOCITY_Y
+			}
+		}
+		b.velocityY = -1 * ballVelocityY
 	}
 }
 
@@ -486,6 +485,7 @@ func (g *game) resetPoint() {
 	g.slime2.velocityX = 0
 	g.slime2.velocityY = 0
 	g.slime2.x = initialSlime2X
+	fmt.Printf("initialized slime2 x to %v", initialSlime2X)
 	g.slime2.velocityY = float64(g.height)
 }
 
