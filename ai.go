@@ -20,9 +20,12 @@ func min(a, b int) int {
 	return b
 }
 
-func (g *game) randomJump40() {
+func (g *game) randomJump(percent float64) {
 	// 40% of the time will do a jump
-	if rand.Float64() < .4 {
+	if g.slime2.y != float64(g.height) {
+		return
+	}
+	if rand.Float64() < percent {
 		g.slime2.velocityY = -5
 	}
 }
@@ -43,32 +46,7 @@ func (g *game) calculateXWhenBallBelow(yLimit float64) float64 {
 }
 
 
-
-
-
 func (g *game) updateAI() {
-
-	/*
-	p1ToP2Wall := g.width - int32(g.slime1.x)
-	p2ToP2Wall := g.width - int32(g.slime2.x)
-
-	ballToP2Wall := g.width - int32(g.slime2.x)
-	ballToP1Wall := g.width - int32(g.slime1.x)
-
-	// currently AI must always be slime2
-
-
-	enemyToTheirWall := int32(g.slime1.x)
-
-    ballToEnemyWall := g.ball.x
-	ballVToEnmyWall := g.ball.velocityX
-    */
-	//meToEnemyWall := int32(g.slime2.x)
-
-	// currently AI is hardcode to player 2
-	meToEnemyWall := g.slime2.x
-
-
     // if the ball is far away from enemy's wall, or it's velocity is 0
 
     // when velocity is 0 on the right of the net, the AI is serving
@@ -80,22 +58,6 @@ func (g *game) updateAI() {
 	randomSaltInt := 15 + rand.Float64() * 10
 	randSalt := randomSaltInt
 	xWhenBallBelow125 := g.calculateXWhenBallBelow(125)
-/*
-	if g.ai.state == enemyCloseToNet {
-		// TODO: generalize these checks to not rely on magic numbers
-
-		// if ball is low and moving down
-		if g.ball.y < 300 && g.ball.velocityY < -3 {
-			fmt.Printf("ball is low and moving left %v\n", g.ball.velocityY)
-			// move to wall
-			g.slime2.velocityX = 2
-			// jump
-		}
-		//something := 23 +
-		//s1 := rand.NewSource(time.Now().UnixNano())
-		//r1 := rand.New(s1)
-	}*/
-
 
 	if xWhenBallBelow125 < float64(g.width) / 2 { // if balls' trajectory is towards opponents side, just get centered
 	    // handle return logic here
@@ -103,20 +65,25 @@ func (g *game) updateAI() {
 	}
 
 	//
-	if math.Abs(meToEnemyWall - xWhenBallBelow125) <  randSalt { // if AI is close to where ball will land
+	if math.Abs(g.slime2.x - xWhenBallBelow125) <  randSalt { // if AI is close to where ball will land
 		// 30% of the time just stay there
 		if rand.Float64() < .3 {
 			return
 		}
 
-		if (meToEnemyWall >= 900 && g.ball.x > 830 ||
-			meToEnemyWall <= 580 && g.ball.x < 530 && math.Abs(g.ball.x - meToEnemyWall) < 100) {
-			g.randomJump40()
-		} else if (math.Pow(g.ball.velocityX, 2) + math.Pow(g.ball.velocityY, 2) < 20 &&
-			g.ball.x - meToEnemyWall < 30 &&
-			g.ball.x != meToEnemyWall) {
-			    g.randomJump40()
-	    }
+		if g.slime2.x >= 900 && g.ball.x > 830 ||
+			g.slime2.x <= 580 && g.ball.x < 530 && math.Abs(g.ball.x - g.slime2.x) < 100 {
+			g.randomJump(40)
+		} else if math.Pow(g.ball.x  - g.slime2.x, 2) * 2 + math.Pow(g.ball.y - g.slime2.y, 2) < 28900 &&
+				g.ball.x != g.slime2.x {
+			g.randomJump(40)
+		} else if math.Pow((-1 * g.ball.velocityX), 2) + math.Pow(g.ball.velocityY, 2) < 20 &&
+			g.ball.x - g.slime2.x < 30 &&
+			g.ball.x != g.slime2.x {
+			    g.randomJump(40)
+	    } else if (math.Abs(g.ball.x - g.slime2.x) < 150 && g.ball.y > 50 && g.ball.y < 400  && rand.Float64() < .5) {
+	    	g.randomJump(40)
+		}
 	//else if math.Pow(g.ball.x - meToEnemyWall, 2) * 2 + math.Pow() < 28900 {
 	}
 
@@ -145,20 +112,16 @@ func (g *game) updateAI() {
             this.randomJump40Percent();
         }
     }
-
 	 */
-
 
 	// handles moving the slime left and right to intercept the ball
 	if g.ai.state == initialAiState {
-		fmt.Printf("in tick %v %v %v\n", meToEnemyWall, xWhenBallBelow125, randSalt)
-		if math.Abs(meToEnemyWall - xWhenBallBelow125) <  randSalt {
+		if math.Abs(g.slime2.x - xWhenBallBelow125) <  randSalt {
 			g.slime2.velocityX = 0
-		} else if xWhenBallBelow125 + randSalt >= meToEnemyWall {
+		} else if xWhenBallBelow125 + randSalt >= g.slime2.x {
 			// move to net
 			g.slime2.velocityX = 2
-		} else if xWhenBallBelow125 - randSalt <= meToEnemyWall {
-			fmt.Printf("got here when %v and %v", xWhenBallBelow125, meToEnemyWall)
+		} else if xWhenBallBelow125 - randSalt <= g.slime2.x {
 			g.slime2.velocityX = -2
 		} else{
 			fmt.Printf("should never get here")

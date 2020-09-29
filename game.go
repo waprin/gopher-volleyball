@@ -183,7 +183,7 @@ func (g *game) handlePlayer1RightTouch(state uint8) {
 }
 
 func (g *game) handlePlayer1UpTouch(state uint8) {
-	if state == 1 {
+	if state == 1 && g.slime1.y == float64(g.height) {
 		g.slime1.velocityY = -5
 	}
 }
@@ -215,7 +215,7 @@ func (g *game) handlePlayer2UpTouch(state uint8) {
 	if g.oppMode != opponent2p {
 		return
 	}
-	if state == 1 {
+	if state == 1 && g.slime1.y > 0 {
 		g.slime2.velocityY = -3
 	}
 }
