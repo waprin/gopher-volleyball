@@ -13,7 +13,7 @@ import (
 var count = 0
 
 const (
-	gravity = 0.15
+	gravity = 0.2
 	initialSlime1X = 200
 	initialSlime2X = 600
 )
@@ -43,9 +43,12 @@ const (
 
 type aiState int
 
+// state for AI to consider moves, "enemy" in this case is the human player (player 1)
 const (
 	initialAiState = iota
 	enemyCloseToNet
+	enemyFarFromNet
+	enemyInMiddle
 )
 
 type game struct {
@@ -134,7 +137,7 @@ func newGame (r *sdl.Renderer, w, h int32) (*game, error) {
 
 
 	return &game{
-		ball: &ball{x:200, y: 250, radius: 10},
+		ball: &ball{x:initialSlime2X, y: 250, radius: 10},
 		slime1: &slime{
 			x: initialSlime1X,
 			y: float64(h),
@@ -366,7 +369,7 @@ func (s *slime) touch(b *ball) {
 
 		b.y = HEIGHT - ballY
 
-		magnitude := (dx * dVelocityX + dy * dVelocityY) / dist
+		magnitude := 1.5 * (dx * dVelocityX + dy * dVelocityY) / dist
 
 		b.velocityX += s.velocityX - (2 * dx * magnitude / dist)
 		ballVelocityY += (-1 * s.velocityY) - (2 * dy * magnitude / dist)
@@ -385,7 +388,7 @@ func (s *slime) touch(b *ball) {
 				ballVelocityY = -1 * MAX_VELOCITY_Y
 			}
 		}
-		b.velocityY = -1 * ballVelocityY
+		b.velocityY = -1.3 * ballVelocityY
 	}
 }
 
@@ -472,7 +475,12 @@ func (g *game) start(r *sdl.Renderer) {
 
 func (g *game) resetPoint() {
 	g.ball.y = 250
-	g.ball.x = 200
+	/*if g.lastPtPlayer1 {
+		g.ball.x = 200
+	} else {
+		g.ball.x = 600
+	}*/
+	g.ball.x = 600
 
 	g.ball.velocityY = 0
 	g.ball.velocityX = 0
@@ -574,6 +582,7 @@ func (g *game) renderIntro(r *sdl.Renderer) error {
 
 
 func (g *game) handleMouseUp(x int32, y int32) {
+	fmt.Printf("game mouse up %v %v", x, y)
 	if g.mode == intro {
 		if x > 100 && x < (100 + 150) && y > 100 && y < (100 + 100) {
 			g.oppMode = opponentAI

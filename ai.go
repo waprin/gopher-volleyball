@@ -13,13 +13,6 @@ func Abs(x int32) int32 {
 	return x
 }
 
-func min(a, b int) int {
-	if a < b {
-		return a
-	}
-	return b
-}
-
 func (g *game) randomJump(percent float64) {
 	// 40% of the time will do a jump
 	if g.slime2.y != float64(g.height) {
@@ -45,6 +38,9 @@ func (g *game) calculateXWhenBallBelow(yLimit float64) float64 {
 	return math.Min(localMax, float64(g.width))
 }
 
+func (g *game) aiIsServing() bool {
+	return g.ball.velocityX == 0 && g.ball.x == initialSlime2X
+}
 
 func (g *game) updateAI() {
     // if the ball is far away from enemy's wall, or it's velocity is 0
@@ -59,8 +55,76 @@ func (g *game) updateAI() {
 	randSalt := randomSaltInt
 	xWhenBallBelow125 := g.calculateXWhenBallBelow(125)
 
+	if g.ball.x < float64(g.width/ 2) {
+		g.ai.state = initialAiState
+	}
+
+	if g.ai.state == initialAiState {
+		// consider opponents position when deciding next move
+		if g.slime1.x > 250 {
+			g.ai.state = enemyCloseToNet
+		} else if g.slime1.x < 200 {
+			g.ai.state = enemyFarFromNet
+		} else {
+			g.ai.state = enemyInMiddle
+		}
+
+		// randomly do a different move then the usual one
+		if rand.Float64() < .35 {
+			g.ai.state = aiState(rand.Intn(4))
+		}
+	}
+
+	if g.aiIsServing() {
+		if g.ai.state == enemyCloseToNet {
+			fmt.Printf("serving enemy close to net %v %v\n", g.ball.y, g.ball.velocityY)
+			// if ball moving down
+			if g.ball.y > 200 && g.ball.velocityY > 3 {
+				g.slime2.velocityX = 2
+				g.slime2.velocityY = -5
+			}
+		} else if g.ai.state == enemyFarFromNet {
+			fmt.Printf("serving enemy far from net\n")
+			if g.ball.y > 150 && g.ball.velocityY > 4 {
+				g.slime2.velocityX = -2
+				g.slime2.velocityY = -5
+			}
+		} else if g.ai.state == enemyInMiddle {
+			fmt.Printf("serving enemy in middle %v %v\n", g.ball.velocityY, g.slime2.x)
+			if g.ball.velocityY < -3 && g.slime2.x < 660 {
+				g.slime2.velocityX = 2
+			}
+			if g.slime2.x >= 660 {
+				g.slime2.velocityX = 0
+			}
+
+			if g.slime2.velocityY == 3  && g.slime2.x != 600 {
+				g.slime2.velocityY = -5
+			}
+
+			if g.ball.velocityY >  3 && g.slime2.y != 0 && g.slime2.x >= 660 {
+				g.slime2.velocityX = -2;
+			}
+		}
+
+		return
+	}
+
 	if xWhenBallBelow125 < float64(g.width) / 2 { // if balls' trajectory is towards opponents side, just get centered
 	    // handle return logic here
+
+		differenceFromCenter := int32(g.slime2.x) - 600
+		if Abs(differenceFromCenter) < 20 {
+			fmt.Printf("got centered\n")
+			g.slime2.velocityX = 0
+		} else if differenceFromCenter >= 20 {
+			//console.log('moveToNet 2');
+			fmt.Printf("centering to net\n")
+			g.slime2.velocityX = -2
+		} else {
+			fmt.Printf("centering to wall\n")
+			g.slime2.velocityX = 2
+		}
 		return
 	}
 
@@ -87,45 +151,16 @@ func (g *game) updateAI() {
 	//else if math.Pow(g.ball.x - meToEnemyWall, 2) * 2 + math.Pow() < 28900 {
 	}
 
-	/*
-
-    // if close to where the ball will end up
-    if (Math.abs(this.meToEnemyWall - xWhenBallBelow125) < something)
-    {
-      if (me.y != 0 || Math.random() < 0.3)
-        return;
-
-        if (
-            (this.meToEnemyWall >= 900 && this.ballToEnemyWall > 830) ||
-            (this.meToEnemyWall <= 580 && this.ballToEnemyWall < 530 && Math.abs(this.ballToEnemyWall - this.meToEnemyWall) < 100)
-        ) {
-            this.randomJump40Percent();
-      } else if ((Math.pow(this.ballToEnemyWall - this.meToEnemyWall, 2) * 2 + Math.pow(ball.y - me.y, 2) < 28900) &&
-            (this.ballToEnemyWall != this.meToEnemyWall)) {
-            this.randomJump40Percent();
-        } else if ((Math.pow(this.ballVXToEnemyWall, 2) + Math.pow(ball.velocityY, 2) < 20) &&
-            (this.ballToEnemyWall - this.meToEnemyWall < 30) &&
-            (this.ballToEnemyWall != this.meToEnemyWall)) {
-            this.randomJump40Percent();
-        } else if ((Math.abs(this.ballToEnemyWall - this.meToEnemyWall) < 150) &&
-            (ball.y > 50) && (ball.y < 400) && (Math.random() < 0.5)) {
-            this.randomJump40Percent();
-        }
-    }
-	 */
-
 	// handles moving the slime left and right to intercept the ball
-	if g.ai.state == initialAiState {
-		if math.Abs(g.slime2.x - xWhenBallBelow125) <  randSalt {
-			g.slime2.velocityX = 0
-		} else if xWhenBallBelow125 + randSalt >= g.slime2.x {
-			// move to net
-			g.slime2.velocityX = 2
-		} else if xWhenBallBelow125 - randSalt <= g.slime2.x {
-			g.slime2.velocityX = -2
-		} else{
-			fmt.Printf("should never get here")
-		}
+	if math.Abs(g.slime2.x - xWhenBallBelow125) <  randSalt {
+		g.slime2.velocityX = 0
+	} else if xWhenBallBelow125 + randSalt >= g.slime2.x {
+		// move to net
+		g.slime2.velocityX = 2
+	} else if xWhenBallBelow125 - randSalt <= g.slime2.x {
+		g.slime2.velocityX = -2
+	} else{
+		fmt.Printf("should never get here")
 	}
 
 }
@@ -135,9 +170,9 @@ func (g *game) updateAI() {
 func countFramesUntilBelow(y float64, vy float64, limit float64) int {
 	count := 0
 	for {
-		vy -= 1
+		vy += 1
 		y += vy
-		if y < limit {
+		if y > limit {
 			return count
 		}
 		count++
