@@ -43,12 +43,11 @@ const (
 
 type aiState int
 
-// state for AI to consider moves, "enemy" in this case is the human player (player 1)
+// state for AI to do differet serve types across frames
 const (
-	initialAiState = iota
-	enemyCloseToNet
-	enemyFarFromNet
-	enemyInMiddle
+	notServing = iota
+	serve1
+	serve2
 )
 
 type game struct {
@@ -137,7 +136,7 @@ func newGame (r *sdl.Renderer, w, h int32) (*game, error) {
 
 
 	return &game{
-		ball: &ball{x:initialSlime2X, y: 250, radius: 10},
+		ball: &ball{x:initialSlime1X, y: 250, radius: 10},
 		slime1: &slime{
 			x: initialSlime1X,
 			y: float64(h),
@@ -154,7 +153,7 @@ func newGame (r *sdl.Renderer, w, h int32) (*game, error) {
 		},
 		ai: &ai{
 			movement: 0,
-			state: initialAiState,
+			state: notServing,
 		},
 		width: w,
 		height: h,
@@ -203,7 +202,6 @@ func (g *game) handlePlayer2LeftTouch(state uint8) {
 }
 
 func (g *game) handlePlayer2RightTouch(state uint8) {
-	fmt.Printf("player 2 x is %v", g.slime2.x)
 	if g.oppMode != opponent2p {
 		return
 	}
@@ -224,9 +222,7 @@ func (g *game) handlePlayer2UpTouch(state uint8) {
 }
 
 func (g *game) handleSpaceBar(state uint8) {
-	fmt.Printf("space bar pressed")
 	if g.mode == matchEnded {
-		fmt.Printf("space bar match endedd")
 		g.resetPoint()
 		g.slime2Pts = 0
 		g.slime1Pts = 0
@@ -475,12 +471,11 @@ func (g *game) start(r *sdl.Renderer) {
 
 func (g *game) resetPoint() {
 	g.ball.y = 250
-	/*if g.lastPtPlayer1 {
+	if g.lastPtPlayer1 {
 		g.ball.x = 200
 	} else {
 		g.ball.x = 600
-	}*/
-	g.ball.x = 600
+	}
 
 	g.ball.velocityY = 0
 	g.ball.velocityX = 0
@@ -493,17 +488,25 @@ func (g *game) resetPoint() {
 	g.slime2.velocityX = 0
 	g.slime2.velocityY = 0
 	g.slime2.x = initialSlime2X
-	fmt.Printf("initialized slime2 x to %v", initialSlime2X)
 	g.slime2.velocityY = float64(g.height)
 }
 
 func (g *game) writeText(r *sdl.Renderer, text string, rect *sdl.Rect, tc color, big bool) error {
 	var c sdl.Color
+
+	// set color and draw a background rect
 	if tc == textBlack {
+		r.SetDrawColor(255, 255, 255, 255)
+		r.FillRect(rect)
+
 		c = sdl.Color{R: 0, G: 0, B: 0, A: 255}
+
 	} else if tc == textWhite {
+		r.SetDrawColor(0, 0, 0, 255)
+		r.FillRect(rect)
 		c = sdl.Color{R: 255, G: 255, B: 255, A: 255}
 	}
+
 	var s *sdl.Surface
 	var err error
 	if (big) {
@@ -530,9 +533,9 @@ func (g *game) renderPoint(r *sdl.Renderer) error {
 	var err error
 	r.SetDrawColor(0, 0, 0, 255)
 	if g.lastPtPlayer1 {
-		err = g.writeText(r, "Player 1 scored!", &sdl.Rect{200, 100, 300, 200}, textBlack, true)
+		err = g.writeText(r, "Player 1 scored!", &sdl.Rect{200, 100, 400, 150}, textBlack, true)
 	} else {
-		err = g.writeText(r, "Player 2 scored!", &sdl.Rect{200, 100, 300, 200}, textBlack, true)
+		err = g.writeText(r, "Player 2 scored!", &sdl.Rect{200, 100, 400, 150}, textBlack, true)
 	}
 	return err
 }
@@ -566,15 +569,11 @@ func (g *game) renderIntro(r *sdl.Renderer) error {
 
 	r.SetDrawColor(0, 0, 0, 255)
 
-	rect := &sdl.Rect{int32(100), int32(100), int32(150), int32((100))}
-	r.DrawRect(rect)
-	r.FillRect(rect)
-	g.writeText(r,"Play Vs AI!", &sdl.Rect{100, 100, 150, 50}, textWhite, false)
+	rect := &sdl.Rect{int32(100), int32(100), int32(250), int32((100))}
+	g.writeText(r,"Play Vs Computer", rect, textWhite, false)
 
-	rect2 := &sdl.Rect{int32(500), int32(100), int32(150), int32((100))}
-	r.DrawRect(rect2)
-	r.FillRect(rect2)
-	g.writeText(r,"Play 2 Player!", &sdl.Rect{500, 100, 150, 50}, textWhite, false)
+	rect2 := &sdl.Rect{int32(400), int32(100), int32(250), int32((100))}
+	g.writeText(r,"Play 2 Player", rect2, textWhite, false)
 
 	g.writeText(r,"Welcome to Gopher Volleyball!", &sdl.Rect{200, 250, 300, 100}, textBlack, true)
 	return nil
@@ -582,7 +581,6 @@ func (g *game) renderIntro(r *sdl.Renderer) error {
 
 
 func (g *game) handleMouseUp(x int32, y int32) {
-	fmt.Printf("game mouse up %v %v", x, y)
 	if g.mode == intro {
 		if x > 100 && x < (100 + 150) && y > 100 && y < (100 + 100) {
 			g.oppMode = opponentAI

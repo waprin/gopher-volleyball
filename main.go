@@ -6,6 +6,8 @@ import (
 	"github.com/veandco/go-sdl2/sdl"
 	"github.com/veandco/go-sdl2/ttf"
 
+	"math/rand"
+	"time"
 )
 
 const (
@@ -40,6 +42,8 @@ func main() {
 		fmt.Printf("Could not initialize game: %v", err)
 	}
 	g.start(r)
+
+	rand.Seed(time.Now().UnixNano())
 
 	for running == true {
 		for event := sdl.PollEvent(); event != nil; event = sdl.PollEvent() {
