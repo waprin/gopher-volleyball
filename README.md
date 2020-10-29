@@ -2,6 +2,8 @@
 
 Slime volleyball implemented in Go with the SDL 2 bindings
 
+![game demo image](https://github.com/waprin/gopher-volleyball/blob/master/slime_demo.png?raw=true)
+
 
 ## Installation
 
