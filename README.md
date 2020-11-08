@@ -7,7 +7,7 @@ Slime volleyball implemented in Go with the SDL 2 bindings
 ## About
 
 This is a small project written "just for fun", inspired by Francesc Campoy's  [Flappy Gopher](https://www.youtube.com/watch?v=aYkxFbd6luY)
-and reddit user /u/marler8997 []HTMl5 Slime Volleyball](https://www.reddit.com/r/gaming/comments/3b7j47/html5_version_of_slime_volleyball/).
+and reddit user /u/marler8997 [HTMl5 Slime Volleyball](https://www.reddit.com/r/gaming/comments/3b7j47/html5_version_of_slime_volleyball/).
 
 I learned some interesting thing about 2D circle physics while coding this up, check out [my blog post about it](https://waprin.io/2020/10/11/gopher-ball.html).
 
