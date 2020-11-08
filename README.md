@@ -2,7 +2,7 @@
 
 Slime volleyball implemented in Go with the SDL 2 bindings
 
-![game demo image](https://github.com/waprin/gopher-volleyball/blob/master/slime_demo.png?raw=true)
+![game demo image](https://github.com/waprin/gopher-volleyball/blob/master/image/slime_demo.png?raw=true)
 
 
 ## Installation
@@ -14,7 +14,7 @@ After that, clone this repo and run:
 
     make run
 
-## Buildig a binary
+## Building a binary
 
 To build a binary:
 
